@@ -34,7 +34,13 @@
 #include <time.h>
 
 namespace rotors_control {
-    
+
+    struct control_acc{
+        double x;
+        double y;
+        double z;
+    };
+
     class MellingerController{
         public:
             MellingerController();
@@ -58,16 +64,22 @@ namespace rotors_control {
             bool controller_active_;
             bool state_estimator_active_;
 
+            struct control_acc c_a;
+
             control_s control_t_;
 
             //Integrator initial conditions
-            double theta_command_ki_;
-            double phi_command_ki_;
-            double p_command_ki_;
-            double q_command_ki_;
-            double delta_psi_ki_;
-            double r_command_ki_;
-            double delta_omega_ki_;
+           double  error_x;
+           double error_y;
+           double error_z;
+
+           //motor parameter
+           double bf;
+           double bm;
+           double l;
+
+           // matrix conversion
+           Eigen::Matrix4d Conversion;
 
             //Controller gains
             Eigen::Vector3f hover_xyz_stiff_kp_;
@@ -101,11 +113,17 @@ namespace rotors_control {
             sensorData_t sensors_;
             state_t state_;
 
+
+            void RPThrustControl(double &phi_des, double &theta_des,double &delta_F);
+            void HoverControl( double* acc_x, double* acc_y, double* acc_z);
+            void AttitudeError(Eigen::Vector3f &errorAngle ,Eigen::Vector3f &errorAngularVelocity);
             void RateController(double* delta_phi, double* delta_theta, double* delta_psi);
             void AttitudeController(double* p_command, double* q_command);
-            void ErrorBodyFrame(double* xe, double* ye) const;
+            void ErrorBodyFrame(double* x_error_, double* y_error_,double* z_error_) const;
+            void ErrorBodyFrame(double* x_error_, double* y_error_,double* z_error_, Eigen::Vector3d &velocity_error) const;
             void HoveringController(double* delta_omega);
             void YawPositionController(double* r_command);
+            void PathFollowing3D(double* acc_x,double* acc_y, double* acc_z);
             void XYController(double* theta_command, double* phi_command);
             void ControlMixer(double* PWM_1, double* PWM_2, double* PWM_3, double* PWM_4); 
             void Quaternion2Euler(double* roll, double* pitch, double* yaw) const;

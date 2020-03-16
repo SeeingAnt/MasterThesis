@@ -256,8 +256,41 @@ void MellingerControlNode::InitializeParams() {
     GetRosParameter(pnh, "path_kd/z",
                     mellinger_controller_.controller_parameters_.path_kd_.z(),
                     &mellinger_controller_.controller_parameters_.path_kd_.z());
+    GetRosParameter(pnh, """bf",
+                    mellinger_controller_.controller_parameters_.bf,
+                    &mellinger_controller_.controller_parameters_.bf);
+    GetRosParameter(pnh, "bm",
+                    mellinger_controller_.controller_parameters_.bm,
+                    &mellinger_controller_.controller_parameters_.bm);
+    GetRosParameter(pnh, "l",
+                    mellinger_controller_.controller_parameters_.l,
+                    &mellinger_controller_.controller_parameters_.l);
 
+
+    double mass, Ixx,Iyy, Izz, Ixy, Ixz, Iyz;
+    GetRosParameter(pnh, "inertia/xx",
+                    Ixx, &Ixx);
+    GetRosParameter(pnh, "inertia/yy",
+                    Iyy, &Iyy);
+    GetRosParameter(pnh, "inertia/zz",
+                    Izz, &Izz);
+    GetRosParameter(pnh, "inertia/xy",
+                    Ixy, &Ixy);
+    GetRosParameter(pnh, "inertia/xz",
+                    Ixz, &Ixz);
+    GetRosParameter(pnh, "inertia/yz",
+                    Iyz, &Iyz);
+    GetRosParameter(pnh, "mass",
+                    mass, &mass);
+
+
+    mellinger_controller_.controller_parameters_.Inertia << Ixx, Ixy, Ixz,
+                                                            Ixy, Iyy, Iyz,
+                                                            Ixz, Iyz, Izz ;
+    mellinger_controller_.controller_parameters_.mass = mass;
     mellinger_controller_.SetControllerGains();
+
+
  // if (enable_state_estimator_)
    // mellinger_controller_.crazyflie_onboard_controller_.SetControllerGains(mellinger_controller_.controller_parameters_);
 

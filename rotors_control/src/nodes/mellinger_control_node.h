@@ -84,6 +84,7 @@ namespace rotors_control {
             std::deque<ros::Duration> command_waiting_times_;
             ros::Timer command_timer_;
 
+
             void MultiDofJointTrajectoryCallback(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& trajectory_reference_msg);
 
             void OdometryCallback(const nav_msgs::OdometryConstPtr& odometry_msg);

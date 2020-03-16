@@ -32,7 +32,7 @@
 #include <nav_msgs/Odometry.h>
 #include <ros/console.h>
 
-
+#define GRAVITY                                  9.81 /* g [m/s^2]*/
 #define M_PI                                     3.14159265358979323846  /* pi [rad]*/
 #define OMEGA_OFFSET                             6874  /* OMEGA OFFSET [PWM]*/
 #define ANGULAR_MOTOR_COEFFICIENT                0.2685 /* ANGULAR_MOTOR_COEFFICIENT */
@@ -50,13 +50,9 @@ namespace rotors_control{
 MellingerController::MellingerController()
     : controller_active_(false),
     state_estimator_active_(false),
-    phi_command_ki_(0),
-    theta_command_ki_(0),
-    p_command_ki_(0),
-    q_command_ki_(0),
-    r_command_ki_(0),
-    delta_psi_ki_(0),
-    delta_omega_ki_(0){
+    error_x(0),
+    error_y(0),
+    error_z(0){
 
       // The control variables are initialized to zero
       control_t_.roll = 0;
@@ -88,6 +84,8 @@ MellingerController::MellingerController()
       state_.attitudeQuaternion.y = 0; // Quaternion y
       state_.attitudeQuaternion.z = 0; // Quaternion z
       state_.attitudeQuaternion.w = 0; // Quaternion w
+
+
 }
 
 MellingerController::~MellingerController() {}
@@ -153,6 +151,17 @@ void MellingerController::SetControllerGains(){
                 controller_parameters_.path_kd_.y(),
                 controller_parameters_.path_kd_.z());
 
+        bm = controller_parameters_.bm;
+        bf = controller_parameters_.bf;
+        l = controller_parameters_.l;
+
+        Eigen::Matrix4d Conversion_fw;
+        Conversion_fw << bf, bf, bf, bf,
+                         0.0, bf*l, 0.0, -bf*l,
+                         -bf*l, 0.0, bf*l, 0.0,
+                         bm, bm, bm, bm;
+        Conversion = Conversion_fw.inverse();
+
 }
 
 void MellingerController::SetTrajectoryPoint(const mav_msgs::EigenTrajectoryPoint& command_trajectory) {
@@ -171,40 +180,41 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
     
     double PWM_1, PWM_2, PWM_3, PWM_4;
     ControlMixer(&PWM_1, &PWM_2, &PWM_3, &PWM_4);
- 
-    double omega_1, omega_2, omega_3, omega_4;
-    omega_1 = ((PWM_1 * ANGULAR_MOTOR_COEFFICIENT) + MOTORS_INTERCEPT); 
-    omega_2 = ((PWM_2 * ANGULAR_MOTOR_COEFFICIENT) + MOTORS_INTERCEPT); 
-    omega_3 = ((PWM_3 * ANGULAR_MOTOR_COEFFICIENT) + MOTORS_INTERCEPT); 
-    omega_4 = ((PWM_4 * ANGULAR_MOTOR_COEFFICIENT) + MOTORS_INTERCEPT); 
+
+    Eigen::Vector4d forces, omega;
+    omega = Conversion*forces;
+    omega(0) = std::sqrt(omega(0));
+    omega(1) = std::sqrt(omega(1));
+    omega(2) = std::sqrt(omega(2));
+    omega(3) = std::sqrt(omega(3));
 
     //The omega values are saturated considering physical constraints of the system
-    if(!(omega_1 < MAX_PROPELLERS_ANGULAR_VELOCITY && omega_1 > 0))
-        if(omega_1 > MAX_PROPELLERS_ANGULAR_VELOCITY)
-           omega_1 = MAX_PROPELLERS_ANGULAR_VELOCITY;
+    if(!(omega(0) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(0) > 0))
+        if(omega(0) > MAX_PROPELLERS_ANGULAR_VELOCITY)
+           omega(0) = MAX_PROPELLERS_ANGULAR_VELOCITY;
         else
-           omega_1 = 0;
+           omega(0) = 0;
 
-    if(!(omega_2 < MAX_PROPELLERS_ANGULAR_VELOCITY && omega_2 > 0))
-        if(omega_2 > MAX_PROPELLERS_ANGULAR_VELOCITY)
-           omega_2 = MAX_PROPELLERS_ANGULAR_VELOCITY;
+    if(!(omega(2) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(2) > 0))
+        if(omega(2) > MAX_PROPELLERS_ANGULAR_VELOCITY)
+           omega(2) = MAX_PROPELLERS_ANGULAR_VELOCITY;
         else
-           omega_2 = 0;
+           omega(2) = 0;
 
-    if(!(omega_3 < MAX_PROPELLERS_ANGULAR_VELOCITY && omega_3 > 0))
-        if(omega_3 > MAX_PROPELLERS_ANGULAR_VELOCITY)
-           omega_3 = MAX_PROPELLERS_ANGULAR_VELOCITY;
+    if(!(omega(3) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(3) > 0))
+        if(omega(3) > MAX_PROPELLERS_ANGULAR_VELOCITY)
+           omega(3) = MAX_PROPELLERS_ANGULAR_VELOCITY;
         else
-           omega_3 = 0;
+           omega(3) = 0;
 
-    if(!(omega_4 < MAX_PROPELLERS_ANGULAR_VELOCITY && omega_4 > 0))
-        if(omega_4 > MAX_PROPELLERS_ANGULAR_VELOCITY)
-           omega_4 = MAX_PROPELLERS_ANGULAR_VELOCITY;
+    if(!(omega(4) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(4) > 0))
+        if(omega(4) > MAX_PROPELLERS_ANGULAR_VELOCITY)
+           omega(4) = MAX_PROPELLERS_ANGULAR_VELOCITY;
         else
-           omega_4 = 0;
+           omega(4) = 0;
 
-    ROS_DEBUG("Omega_1: %f Omega_2: %f Omega_3: %f Omega_4: %f", omega_1, omega_2, omega_3, omega_4);
-    *rotor_velocities = Eigen::Vector4d(omega_1, omega_2, omega_3, omega_4);
+    ROS_DEBUG("Omega_1: %f Omega_2: %f Omega_3: %f Omega_4: %f", omega(1), omega(2), omega(3), omega(4));
+    *rotor_velocities = Eigen::Vector4d(omega(1), omega(2), omega(3), omega(4));
 }
 
 void MellingerController::Quaternion2Euler(double* roll, double* pitch, double* yaw) const {
@@ -331,64 +341,54 @@ void MellingerController::YawPositionController(double* r_command) {
   */
 }
 
-void MellingerController::HoveringController(double* omega) {
+
+    void MellingerController::ErrorBodyFrame(double* x_error_, double* y_error_,double* z_error_) const {
+        assert(x_error_);
+        assert(y_error_);
+        assert(z_error_);
+
+        // X and Y reference coordinates
+        double x_r = command_trajectory_.position_W[0];
+        double y_r = command_trajectory_.position_W[1];
+        double z_r = command_trajectory_.position_W[2];
+
+        // Position error
+        *x_error_ = x_r - state_.position.x;
+        *y_error_ = y_r - state_.position.y;
+        *z_error_ = z_r - state_.position.z;
+    }
+
+
+    void MellingerController::ErrorBodyFrame(double* x_error_, double* y_error_,double* z_error_, Eigen::Vector3d &velocity_error) const {
+        assert(x_error_);
+        assert(y_error_);
+        assert(z_error_);
+
+        ErrorBodyFrame(x_error_,y_error_,z_error_);
+
+        Eigen::Vector3d velocity = Eigen::Vector3d(state_.linearVelocity.x, state_.linearVelocity.y,state_.linearVelocity.z);
+
+        velocity_error = command_trajectory_.velocity_W - velocity;
+
+    }
+
+
+void MellingerController::PathFollowing3D(double* acc_x,double* acc_y, double* acc_z) {
     assert(omega);
 
-    /*
-    double z_error, z_reference, dot_zeta;
-    z_reference = command_trajectory_.position_W[2];
-    z_error = z_reference - state_.position.z;
-	
-    // Velocity along z-axis from body to inertial frame
-    double roll, pitch, yaw;
-    Quaternion2Euler(&roll, &pitch, &yaw); 
+    double x_error_, y_error_, z_error_;
+    Eigen::Vector3d ev;
+    ErrorBodyFrame(&x_error_,&y_error_,&z_error_,ev);
 
-    // Needed because both angular and linear velocities are expressed in the aircraft body frame
-    dot_zeta = -sin(pitch)*state_.linearVelocity.x + sin(roll)*cos(pitch)*state_.linearVelocity.y +
-	            cos(roll)*cos(pitch)*state_.linearVelocity.z;
+    Eigen::Vector3d position_error = Eigen::Vector3d(x_error_,y_error_,z_error_);
+    Eigen::Vector3d norm = position_error/position_error.norm();
+    Eigen::Vector3d bnorm = position_error.cross(norm);
 
-    double delta_omega, delta_omega_kp, delta_omega_kd;
-    delta_omega_kp = hovering_gain_kp_ * z_error;
-    delta_omega_ki_ = delta_omega_ki_ + (hovering_gain_ki_ * z_error * SAMPLING_TIME);
-    delta_omega_kd = hovering_gain_kd_ * -dot_zeta;
-    delta_omega = delta_omega_kp + delta_omega_ki_ + delta_omega_kd;
+    Eigen::Vector3d ep = position_error.dot(norm)*norm + position_error.dot(bnorm)*bnorm;
 
-    // Delta omega value is saturated considering the aircraft physical constraints
-    if(delta_omega > MAX_POS_DELTA_OMEGA || delta_omega < MAX_NEG_DELTA_OMEGA)
-      if(delta_omega > MAX_POS_DELTA_OMEGA)
-         delta_omega = MAX_POS_DELTA_OMEGA;
-      else
-         delta_omega = -MAX_NEG_DELTA_OMEGA;
-
-     *omega = OMEGA_OFFSET + delta_omega;
-
-     ROS_DEBUG("Delta_omega_kp: %f, Delta_omega_ki: %f, Delta_omega_kd: %f", delta_omega_kp, delta_omega_ki_, delta_omega_kd);
-     ROS_DEBUG("Z_error: %f, Delta_omega: %f", z_error, delta_omega);
-     ROS_DEBUG("Dot_zeta: %f", dot_zeta);
-     ROS_DEBUG("Omega: %f, delta_omega: %f", *omega, delta_omega);
-*/
-}
-
-void MellingerController::ErrorBodyFrame(double* xe, double* ye) const {
-    assert(xe);
-    assert(ye);
-
-    // X and Y reference coordinates
-    double x_r = command_trajectory_.position_W[0];
-    double y_r = command_trajectory_.position_W[1]; 
-    
-    // Position error
-    double x_error_, y_error_;
-    x_error_ = x_r - state_.position.x;
-    y_error_ = y_r - state_.position.y;
-
-    // The aircraft attitude (estimated or not, it depends by the employed controller)
-    double yaw, roll, pitch;
-    Quaternion2Euler(&roll, &pitch, &yaw);   
-    
-    // Tracking error in the body frame
-    *xe = x_error_ * cos(yaw) + y_error_ * sin(yaw);
-    *ye = y_error_ * cos(yaw) - x_error_ * sin(yaw);
+    *acc_x = path_kp_.x() * ep(0) + path_kd_.x() * ev(0) + command_trajectory_.acceleration_W(0);
+    *acc_y = path_kp_.y() * ep(1) + path_kd_.y() * ev(1) + command_trajectory_.acceleration_W(1);
+    *acc_z =  path_kp_.z() * ep(2) + path_kd_.z() * ev(2) + command_trajectory_.acceleration_W(2);
 
 }
 
@@ -426,67 +426,104 @@ void MellingerController::SetSensorData() {
     state_.angularVelocity.z = odometry_.angular_velocity[2];
 }
 
-void MellingerController::RateController(double* delta_phi, double* delta_theta, double* delta_psi) {
-    assert(delta_phi);
-    assert(delta_theta);
-    assert(delta_psi);
+void MellingerController::HoverControl( double* acc_x, double* acc_y, double* acc_z) {
+    assert(acc_x);
+    assert(acc_y);
+    assert(acc_z);
 
-    /*
-    double p, q, r;
-    p = state_.angularVelocity.x;
-    q = state_.angularVelocity.y;
-    r = state_.angularVelocity.z;
+    double error_px, error_py, error_pz;
+    ErrorBodyFrame(&error_px,&error_py,&error_pz);
 
-    double p_command, q_command;
-    AttitudeController(&p_command, &q_command);
- 
-    double r_command;
-    YawPositionController(&r_command);
+    bool bho = true;
 
-    double p_error, q_error, r_error;
-    p_error = p_command - p;
-    q_error = q_command - q;
-    r_error = r_command - r;
+    if(bho == true)
+    {
+        // Stiff hover
+        error_x = error_x + (hover_xyz_soft_ki_.x() * error_px * SAMPLING_TIME);
+        error_y = error_y + (hover_xyz_soft_ki_.y() * error_py * SAMPLING_TIME);
+        error_z = error_z + (hover_xyz_soft_ki_.z() * error_pz * SAMPLING_TIME);
 
-    double delta_phi_kp, delta_theta_kp, delta_psi_kp;
-    delta_phi_kp = rate_gain_kp_.x() * p_error;
-    *delta_phi = delta_phi_kp;
+        error_px = hover_xyz_stiff_kp_.x() * error_px;
+        error_py = hover_xyz_stiff_kp_.y() * error_py;
+        error_pz = hover_xyz_stiff_kp_.z() * error_pz;
 
-    delta_theta_kp = rate_gain_kp_.y() * q_error;
-    *delta_theta = delta_theta_kp;
 
-    delta_psi_kp = rate_gain_kp_.z() * r_error;
-    delta_psi_ki_ = delta_psi_ki_ + (rate_gain_ki_.z() * r_error * SAMPLING_TIME);
-    *delta_psi = delta_psi_kp + delta_psi_ki_;
-*/
+        *acc_x = error_px + error_x - hover_xyz_stiff_kd_.x() * state_.linearVelocity.x;
+        *acc_y = error_py + error_y - hover_xyz_stiff_kd_.y() * state_.linearVelocity.y;
+        *acc_z = error_pz + error_z - hover_xyz_stiff_kd_.z() * state_.linearVelocity.z;
+    }
+    else {
+
+        // Soft hover
+        error_x = error_x + (hover_xyz_soft_ki_.x() * error_px * SAMPLING_TIME);
+        error_y = error_y + (hover_xyz_soft_ki_.y() * error_py * SAMPLING_TIME);
+        error_z = error_z + (hover_xyz_soft_ki_.z() * error_pz * SAMPLING_TIME);
+
+        error_px = hover_xyz_soft_kp_.x() * error_px;
+        error_py = hover_xyz_soft_kp_.y() * error_py;
+        error_pz = hover_xyz_soft_kp_.z() * error_pz;
+
+
+        *acc_x = error_px + error_x - hover_xyz_soft_kd_.x() * state_.linearVelocity.x;
+        *acc_y = error_py + error_y - hover_xyz_soft_kd_.y() * state_.linearVelocity.y;
+        *acc_z = error_pz + error_z - hover_xyz_soft_kd_.z() * state_.linearVelocity.z;
+    }
+
+
 }
+
+void MellingerController::RPThrustControl(double &phi_des, double &theta_des,double &delta_F)
+{
+    double mass = controller_parameters_.mass;
+
+    phi_des = (c_a.x * sin(command_trajectory_.getYaw()) - c_a.y * cos(command_trajectory_.getYaw()));
+    theta_des = (c_a.x * cos(command_trajectory_.getYaw()) + c_a.y * sin(command_trajectory_.getYaw()));
+    delta_F = mass * (c_a.z + GRAVITY);
+
+}
+
 
 void MellingerController::AttitudeController(double* p_command, double* q_command) {
     assert(p_command);
-    assert(q_command); 
-/*
-    double roll, pitch, yaw;
-    Quaternion2Euler(&roll, &pitch, &yaw);  
+    assert(q_command);
 
-    double theta_command, phi_command;
-    XYController(&theta_command, &phi_command);
+    Eigen::Vector3f errorAngle;
+    Eigen::Vector3f errorAngularVelocity;
 
-    double phi_error, theta_error;
-    phi_error = phi_command - roll;
-    theta_error = theta_command - pitch;
+    AttitudeError(errorAngle ,errorAngularVelocity);
 
-    double p_command_kp, q_command_kp;
-    p_command_kp = attitude_gain_kp_.x() * phi_error;
-    p_command_ki_ = p_command_ki_ + (attitude_gain_ki_.x() * phi_error * SAMPLING_TIME);
-    *p_command = p_command_kp + p_command_ki_;
+    double delta_roll, delta_pitch, delta_yaw;
 
-    q_command_kp = attitude_gain_kp_.y() * theta_error;
-    q_command_ki_ = q_command_ki_ + (attitude_gain_ki_.y() * theta_error * SAMPLING_TIME);
-    *q_command = q_command_kp + q_command_ki_;
+    delta_roll = attitude_kp_.x() * errorAngle.x() + attitude_kd_.x() * errorAngle.x();
+    delta_pitch = attitude_kp_.y() * errorAngle.y() + attitude_kd_.y() * errorAngle.y();
+    delta_yaw = attitude_kp_.z() * errorAngle.z() + attitude_kd_.z() * errorAngle.z();
 
     ROS_DEBUG("Phi_c: %f, Phi_e: %f, Theta_c: %f, Theta_e: %f", phi_command, phi_error, theta_command, theta_error);
 
- */
+
+}
+
+void MellingerController::AttitudeError(Eigen::Vector3f &errorAngle ,Eigen::Vector3f &errorAngularVelocity)
+{
+        double roll, pitch, yaw;
+        Quaternion2Euler(&roll, &pitch, &yaw);
+
+        double roll_des, pitch_des, yaw_des;
+        tf::Quaternion q( command_trajectory_.orientation_W_B.x(),
+                          command_trajectory_.orientation_W_B.y(),
+                          command_trajectory_.orientation_W_B.z(),
+                          command_trajectory_.orientation_W_B.w());
+        tf::Matrix3x3 m(q);
+        m.getRPY(roll_des, pitch_des, yaw_des);
+
+        errorAngle.x() =   roll_des - roll;
+        errorAngle.y() =   pitch_des - pitch;
+        errorAngle.z() =   yaw_des - yaw;
+
+        errorAngularVelocity.x() = command_trajectory_.angular_velocity_W(0) - state_.angularVelocity.x;
+        errorAngularVelocity.y() = command_trajectory_.angular_velocity_W(1) - state_.angularVelocity.y;
+        errorAngularVelocity.z() = command_trajectory_.angular_velocity_W(2) - state_.angularVelocity.z;
+
 }
 
 

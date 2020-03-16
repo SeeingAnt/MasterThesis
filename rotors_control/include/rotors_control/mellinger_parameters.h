@@ -44,6 +44,9 @@ const Eigen::Vector3f kDDefaultXYZPathAngle = Eigen::Vector3f(1.0, 1.0, 1.0);
 const Eigen::Vector3f kPDefaultXYZPath = Eigen::Vector3f(1.0, 1.0, 1.0);
 const Eigen::Vector3f kDDefaultXYZPath = Eigen::Vector3f(1.0, 1.0, 1.0);
 
+const double MDefault = 1.0;
+Eigen::Matrix3d DefaultInertia =  Eigen::Matrix3d::Identity(3, 3);
+
 namespace rotors_control {
 
 	class MellingerControllerParameters {
@@ -65,7 +68,9 @@ namespace rotors_control {
             path_angle_kp_(kPDefaultXYZPathAngle),
             path_angle_kd_(kDDefaultXYZPathAngle),
             path_kp_(kPDefaultXYZPath),
-            path_kd_(kDDefaultXYZPath){
+            path_kd_(kDDefaultXYZPath),
+            Inertia(DefaultInertia),
+            mass(MDefault){
 	  }
 
 	  Eigen::Vector3f hover_xyz_stiff_kp_;
@@ -92,6 +97,13 @@ namespace rotors_control {
 	  Eigen::Vector3f path_kp_;
 	  Eigen::Vector3f path_kd_;
 
+	  double mass;
+	  Eigen::Matrix3d Inertia;
+
+	  // motor parameter
+	  double bf;
+	  double bm;
+	  double l;
 	};
 
 }
