@@ -87,7 +87,7 @@ target_link_libraries(lee_position_controller_node
 add_executable(mellinger_controller_node src/nodes/mellinger_control_node.cpp)
 add_dependencies(mellinger_controller_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(mellinger_controller_node
- position_controller crazyflie_complementary_filter crazyflie_onboard_controller sensfusion6 ${catkin_LIBRARIES})
+ mellinger_controller crazyflie_complementary_filter crazyflie_onboard_controller sensfusion6 ${catkin_LIBRARIES})
 
 add_executable(position_controller_node src/nodes/position_controller_node.cpp)
 add_dependencies(position_controller_node ${catkin_EXPORTED_TARGETS})

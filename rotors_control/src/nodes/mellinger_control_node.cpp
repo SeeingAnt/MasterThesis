@@ -50,11 +50,16 @@ MellingerControlNode::MellingerControlNode() {
     motor_velocity_reference_pub_ = nh.advertise<mav_msgs::Actuators>(mav_msgs::default_topics::COMMAND_ACTUATORS, 1);
 
     // The subscription to the IMU topic is made only if it is available, when simulating the Crazyflie dynamics considering the also IMU values
+
+    hover_active = nh.subscribe("hover_active",1,&MellingerControlNode::HoverCallback,this);
+    path_active = nh.subscribe("path_active",1,&MellingerControlNode::PathCallback,this);
+
     if(pnh_node.getParam("enable_state_estimator", enable_state_estimator_)){
       ROS_INFO("Got param 'enable_state_estimator': %d", enable_state_estimator_);
     }
 
-    if (enable_state_estimator_){
+
+    //if (enable_state_estimator_){
         imu_sub_ = nh.subscribe(mav_msgs::default_topics::IMU, 1, &MellingerControlNode::IMUCallback, this);
 
         //Timers allow to set up the working frequency of the control system
@@ -64,7 +69,7 @@ MellingerControlNode::MellingerControlNode() {
 
         timer_IMUUpdate = n_.createTimer(ros::Duration(RATE_UPDATE_DT), &MellingerControlNode::CallbackIMUUpdate, this, false, true);
 
-    }
+    // }
 
 
 }
@@ -132,41 +137,41 @@ void MellingerControlNode::InitializeParams() {
                     mellinger_controller_.controller_parameters_.hover_xyz_stiff_kd_.z(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_stiff_kd_.z());
 
-  GetRosParameter(pnh, "hover_stiff_angle_kp/x",
+  GetRosParameter(pnh, "hover_stiff_angle_kp/phi",
                     mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kp_.x(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kp_.x());
-    GetRosParameter(pnh, "hover_stiff_angle_kp/y",
+    GetRosParameter(pnh, "hover_stiff_angle_kp/theta",
                     mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kp_.y(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kp_.y());
-    GetRosParameter(pnh, "hover_stiff_angle_kp/z",
+    GetRosParameter(pnh, "hover_stiff_angle_kp/psi",
                     mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kp_.z(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kp_.z());
-    GetRosParameter(pnh, "hover_stiff_angle_kd/x",
+    GetRosParameter(pnh, "hover_stiff_angle_kd/phi",
                     mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kd_.x(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kd_.x());
-    GetRosParameter(pnh, "hover_stiff_angle_kd/y",
+    GetRosParameter(pnh, "hover_stiff_angle_kd/theta",
                     mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kd_.y(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kd_.y());
-    GetRosParameter(pnh, "hover_stiff_angle_kd/z",
+    GetRosParameter(pnh, "hover_stiff_angle_kd/psi",
                     mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kd_.z(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_stiff_angle_kd_.z());
 
-    GetRosParameter(pnh, "hover_soft_angle_kp/x",
+    GetRosParameter(pnh, "hover_soft_angle_kp/phi",
                     mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kp_.x(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kp_.x());
-    GetRosParameter(pnh, "hover_soft_angle_kp/y",
+    GetRosParameter(pnh, "hover_soft_angle_kp/theta",
                     mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kp_.y(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kp_.y());
-    GetRosParameter(pnh, "hover_soft_angle_kp/z",
+    GetRosParameter(pnh, "hover_soft_angle_kp/psi",
                     mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kp_.z(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kp_.z());
-    GetRosParameter(pnh, "hover_soft_angle_kd/x",
+    GetRosParameter(pnh, "hover_soft_angle_kd/phi",
                     mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kd_.x(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kd_.x());
-    GetRosParameter(pnh, "hover_soft_angle_kd/y",
+    GetRosParameter(pnh, "hover_soft_angle_kd/theta",
                     mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kd_.y(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kd_.y());
-    GetRosParameter(pnh, "hover_soft_angle_kd/z",
+    GetRosParameter(pnh, "hover_soft_angle_kd/psi",
                     mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kd_.z(),
                     &mellinger_controller_.controller_parameters_.hover_xyz_soft_angle_kd_.z());
 
@@ -315,6 +320,15 @@ void MellingerControlNode::IMUCallback(const sensor_msgs::ImuConstPtr& imu_msg) 
 
     imu_msg_head_stamp_ = imu_msg->header.stamp;	
 
+}
+
+void MellingerControlNode::PathCallback(const std_msgs::BoolConstPtr& path_active)
+{
+    mellinger_controller_.path_is_active = path_active->data;
+}
+void MellingerControlNode::HoverCallback(const std_msgs::BoolConstPtr& hover_active)
+{
+    mellinger_controller_.hover_is_active = hover_active->data;
 }
 
 void MellingerControlNode::OdometryCallback(const nav_msgs::OdometryConstPtr& odometry_msg) {

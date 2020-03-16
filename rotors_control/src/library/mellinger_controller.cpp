@@ -50,6 +50,8 @@ namespace rotors_control{
 MellingerController::MellingerController()
     : controller_active_(false),
     state_estimator_active_(false),
+    hover_is_active(false),
+    path_is_active(false),
     error_x(0),
     error_y(0),
     error_z(0){
@@ -165,7 +167,16 @@ void MellingerController::SetControllerGains(){
 }
 
 void MellingerController::SetTrajectoryPoint(const mav_msgs::EigenTrajectoryPoint& command_trajectory) {
+
     command_trajectory_= command_trajectory;
+
+    tf::Quaternion q( command_trajectory_.orientation_W_B.x(),
+                      command_trajectory_.orientation_W_B.y(),
+                      command_trajectory_.orientation_W_B.z(),
+                      command_trajectory_.orientation_W_B.w());
+    tf::Matrix3x3 m(q);
+    m.getRPY(attitude_t_.roll, attitude_t_.pitch, attitude_t_.yaw);
+    
     controller_active_= true;
 }
 
@@ -183,10 +194,6 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
 
     Eigen::Vector4d forces, omega;
     omega = Conversion*forces;
-    omega(0) = std::sqrt(omega(0));
-    omega(1) = std::sqrt(omega(1));
-    omega(2) = std::sqrt(omega(2));
-    omega(3) = std::sqrt(omega(3));
 
     //The omega values are saturated considering physical constraints of the system
     if(!(omega(0) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(0) > 0))
@@ -214,7 +221,7 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
            omega(4) = 0;
 
     ROS_DEBUG("Omega_1: %f Omega_2: %f Omega_3: %f Omega_4: %f", omega(1), omega(2), omega(3), omega(4));
-    *rotor_velocities = Eigen::Vector4d(omega(1), omega(2), omega(3), omega(4));
+    *rotor_velocities = omega;
 }
 
 void MellingerController::Quaternion2Euler(double* roll, double* pitch, double* yaw) const {
@@ -242,103 +249,23 @@ void MellingerController::ControlMixer(double* PWM_1, double* PWM_2, double* PWM
     assert(PWM_2);
     assert(PWM_3);
     assert(PWM_4);
-   /*
+
     if(!state_estimator_active_)
        // When the state estimator is disable, the delta_omega_ value is computed as soon as the new odometry message is available.
        //The timing is managed by the publication of the odometry topic
-       HoveringController(&control_t_.thrust);
-    */
+        ThrustControl(control_t_.thrust);
+
     // Control signals are sent to the on board control architecture if the state estimator is active
     double delta_phi, delta_theta, delta_psi;
-  /*  if(state_estimator_active_){
-       crazyflie_onboard_controller_.SetControlSignals(control_t_);
-       crazyflie_onboard_controller_.SetDroneState(state_);
-       crazyflie_onboard_controller_.RateController(&delta_phi, &delta_theta, &delta_psi);
-    }
-    else
-       RateController(&delta_phi, &delta_theta, &delta_psi);
-  */
-    *PWM_1 = control_t_.thrust - (delta_theta/2) - (delta_phi/2) - delta_psi;
-    *PWM_2 = control_t_.thrust + (delta_theta/2) - (delta_phi/2) + delta_psi;
-    *PWM_3 = control_t_.thrust + (delta_theta/2) + (delta_phi/2) - delta_psi;
-    *PWM_4 = control_t_.thrust - (delta_theta/2) + (delta_phi/2) + delta_psi;
+    AttitudeController(&delta_phi, &delta_theta, &delta_psi);
+
+    *PWM_1 = control_t_.thrust;
+    *PWM_2 = delta_theta;
+    *PWM_3 = delta_phi;
+    *PWM_4 = delta_psi;
 
     ROS_DEBUG("Omega: %f, Delta_theta: %f, Delta_phi: %f, delta_psi: %f", control_t_.thrust, delta_theta, delta_phi, delta_psi);
     ROS_DEBUG("PWM1: %f, PWM2: %f, PWM3: %f, PWM4: %f", *PWM_1, *PWM_2, *PWM_3, *PWM_4);
-}
-
-void MellingerController::XYController(double* theta_command, double* phi_command) {
-    assert(theta_command);
-    assert(phi_command);    
-/*
-    double v, u;
-    u = state_.linearVelocity.x;  
-    v = state_.linearVelocity.y;
-
-    double xe, ye;
-    ErrorBodyFrame(&xe, &ye);
-
-    double e_vx, e_vy;
-    e_vx = xe - u;
-    e_vy = ye - v;
-
-    double theta_command_kp;
-    theta_command_kp = xy_gain_kp_.x() * e_vx;
-    theta_command_ki_ = theta_command_ki_ + (xy_gain_ki_.x() * e_vx * SAMPLING_TIME);
-    *theta_command  = theta_command_kp + theta_command_ki_;
-
-    double phi_command_kp;
-    phi_command_kp = xy_gain_kp_.y() * e_vy;
-    phi_command_ki_ = phi_command_ki_ + (xy_gain_ki_.y() * e_vy * SAMPLING_TIME);
-    *phi_command  = phi_command_kp + phi_command_ki_;
-
-    // Theta command is saturated considering the aircraft physical constraints
-    if(!(*theta_command < MAX_THETA_COMMAND && *theta_command > -MAX_THETA_COMMAND))
-       if(*theta_command > MAX_THETA_COMMAND)
-          *theta_command = MAX_THETA_COMMAND;
-       else
-          *theta_command = -MAX_THETA_COMMAND;
-
-    // Phi command is saturated considering the aircraft physical constraints
-    if(!(*phi_command < MAX_PHI_COMMAND && *phi_command > -MAX_PHI_COMMAND))
-       if(*phi_command > MAX_PHI_COMMAND)
-          *phi_command = MAX_PHI_COMMAND;
-       else
-          *phi_command = -MAX_PHI_COMMAND;
-
-     ROS_DEBUG("Theta_kp: %f, Theta_ki: %f", theta_command_kp, theta_command_ki_);
-     ROS_DEBUG("Phi_kp: %f, Phi_ki: %f", phi_command_kp, phi_command_ki_);
-     ROS_DEBUG("Phi_c: %f, Theta_c: %f", *phi_command, *theta_command);
-     ROS_DEBUG("E_vx: %f, E_vy: %f", e_vx, e_vy);
-     ROS_DEBUG("E_x: %f, E_y: %f", xe, ye);
-
-*/
-}
-
-void MellingerController::YawPositionController(double* r_command) {
-    assert(r_command);
-
-    /*
-    double roll, pitch, yaw;
-    Quaternion2Euler(&roll, &pitch, &yaw);   
-
-
-    double yaw_error, yaw_reference;
-    yaw_reference = command_trajectory_.getYaw();
-    yaw_error = yaw_reference - yaw;
-
-    double r_command_kp;
-    r_command_kp = yaw_gain_kp_ * yaw_error;
-    r_command_ki_ = r_command_ki_ + (yaw_gain_ki_ * yaw_error * SAMPLING_TIME);
-    *r_command = r_command_ki_ + r_command_kp;
-
-   // R command value is saturated considering the aircraft physical constraints
-   if(!(*r_command < MAX_R_DESIDERED && *r_command > -MAX_R_DESIDERED))
-      if(*r_command > MAX_R_DESIDERED)
-         *r_command = MAX_R_DESIDERED;
-      else
-         *r_command = -MAX_R_DESIDERED;
-  */
 }
 
 
@@ -374,7 +301,9 @@ void MellingerController::YawPositionController(double* r_command) {
 
 
 void MellingerController::PathFollowing3D(double* acc_x,double* acc_y, double* acc_z) {
-    assert(omega);
+    assert(acc_x);
+    assert(acc_y);
+    assert(acc_z);
 
     double x_error_, y_error_, z_error_;
     Eigen::Vector3d ev;
@@ -420,6 +349,16 @@ void MellingerController::SetSensorData() {
     state_.attitudeQuaternion.y = odometry_.orientation.y();
     state_.attitudeQuaternion.z = odometry_.orientation.z();
     state_.attitudeQuaternion.w = odometry_.orientation.w();
+
+    double x, y, z, w;
+    x = state_.attitudeQuaternion.x;
+    y = state_.attitudeQuaternion.y;
+    z = state_.attitudeQuaternion.z;
+    w = state_.attitudeQuaternion.w;
+
+    Rotation_wb <<  1-2*pow(y,2) -2*pow(z,2), 2*x*y - 2*z*w ,2*x*z + 2*y*w,
+                    2*x*y + 2*z*w, 1- 2*pow(x,2) - 2*pow(z,2), 2*y*z - 2*x*w,
+                    2*x*z - 2*y*w, 2*y*z + 2*x*w, 1- 2*pow(x,2) -2*pow(y,2);
 
     state_.angularVelocity.x = odometry_.angular_velocity[0];
     state_.angularVelocity.y = odometry_.angular_velocity[1];
@@ -476,29 +415,30 @@ void MellingerController::RPThrustControl(double &phi_des, double &theta_des,dou
 {
     double mass = controller_parameters_.mass;
 
-    phi_des = (c_a.x * sin(command_trajectory_.getYaw()) - c_a.y * cos(command_trajectory_.getYaw()));
-    theta_des = (c_a.x * cos(command_trajectory_.getYaw()) + c_a.y * sin(command_trajectory_.getYaw()));
+    phi_des = (c_a.z + GRAVITY)*(c_a.x * sin(command_trajectory_.getYaw()) - c_a.y * cos(command_trajectory_.getYaw()));
+    theta_des = (c_a.z + GRAVITY)*(c_a.x * cos(command_trajectory_.getYaw()) + c_a.y * sin(command_trajectory_.getYaw()));
     delta_F = mass * (c_a.z + GRAVITY);
 
 }
 
 
-void MellingerController::AttitudeController(double* p_command, double* q_command) {
-    assert(p_command);
-    assert(q_command);
+void MellingerController::AttitudeController(double* delta_roll, double* delta_pitch, double* delta_yaw) {
+    assert(delta_roll);
+    assert(delta_pitch);
+    assert(delta_yaw);
 
     Eigen::Vector3f errorAngle;
     Eigen::Vector3f errorAngularVelocity;
 
     AttitudeError(errorAngle ,errorAngularVelocity);
 
-    double delta_roll, delta_pitch, delta_yaw;
+    *delta_roll = attitude_kp_.x() * errorAngle.x() + attitude_kd_.x() * errorAngle.x();
+    *delta_pitch = attitude_kp_.y() * errorAngle.y() + attitude_kd_.y() * errorAngle.y();
+    *delta_yaw = attitude_kp_.z() * errorAngle.z() + attitude_kd_.z() * errorAngle.z();
 
-    delta_roll = attitude_kp_.x() * errorAngle.x() + attitude_kd_.x() * errorAngle.x();
-    delta_pitch = attitude_kp_.y() * errorAngle.y() + attitude_kd_.y() * errorAngle.y();
-    delta_yaw = attitude_kp_.z() * errorAngle.z() + attitude_kd_.z() * errorAngle.z();
-
-    ROS_DEBUG("Phi_c: %f, Phi_e: %f, Theta_c: %f, Theta_e: %f", phi_command, phi_error, theta_command, theta_error);
+    ROS_DEBUG("roll_c: %f, roll_e: %f, ", *delta_roll, errorAngle(0));
+    ROS_DEBUG("pitch_c: %f, pitch_e: %f", *delta_pitch, errorAngle(1));
+    ROS_DEBUG("pitch_c: %f, pitch_e: %f", *delta_yaw, errorAngle(2));
 
 
 }
@@ -508,17 +448,9 @@ void MellingerController::AttitudeError(Eigen::Vector3f &errorAngle ,Eigen::Vect
         double roll, pitch, yaw;
         Quaternion2Euler(&roll, &pitch, &yaw);
 
-        double roll_des, pitch_des, yaw_des;
-        tf::Quaternion q( command_trajectory_.orientation_W_B.x(),
-                          command_trajectory_.orientation_W_B.y(),
-                          command_trajectory_.orientation_W_B.z(),
-                          command_trajectory_.orientation_W_B.w());
-        tf::Matrix3x3 m(q);
-        m.getRPY(roll_des, pitch_des, yaw_des);
-
-        errorAngle.x() =   roll_des - roll;
-        errorAngle.y() =   pitch_des - pitch;
-        errorAngle.z() =   yaw_des - yaw;
+        errorAngle.x() =   attitude_t_.roll - roll;
+        errorAngle.y() =   attitude_t_.pitch - pitch;
+        errorAngle.z() =   attitude_t_.yaw - yaw;
 
         errorAngularVelocity.x() = command_trajectory_.angular_velocity_W(0) - state_.angularVelocity.x;
         errorAngularVelocity.y() = command_trajectory_.angular_velocity_W(1) - state_.angularVelocity.y;
@@ -526,7 +458,17 @@ void MellingerController::AttitudeError(Eigen::Vector3f &errorAngle ,Eigen::Vect
 
 }
 
+void  MellingerController::ThrustControl(double &thrust) const
+{
+    double mass = controller_parameters_.mass;
 
+    Eigen::Vector3d forces = Eigen::Vector3d(c_a.x, c_a.y, c_a.z);
+
+    forces = mass * (forces + Eigen::Vector3d(0 ,0 , GRAVITY));
+
+    thrust = Rotation_wb.col(3).dot(forces);
+
+}
 
 /* FROM HERE THE FUNCTIONS EMPLOYED WHEN THE STATE ESTIMATOR IS ABLED ARE REPORTED */
 
@@ -550,16 +492,21 @@ void MellingerController::CallbackAttitudeEstimation() {
 // The high level control runs with a frequency of 100Hz
 void MellingerController::CallbackHightLevelControl() {
 
-    /*
-    // Thrust value
-    HoveringController(&control_t_.thrust);
-    
-    // Phi and theta command signals. The Error Body Controller is invoked every 0.01 seconds. It uses XYController's outputs
-    XYController(&control_t_.pitch, &control_t_.roll);
 
-    // Yaw rate command signals
-    YawPositionController(&control_t_.yawRate);
-   
+    if (hover_is_active)
+        HoverControl( &c_a.x, &c_a.y, &c_a.z);
+
+    if (path_is_active)
+        PathFollowing3D(&c_a.x, &c_a.y, &c_a.z);
+
+    if (hover_is_active || path_is_active)
+       RPThrustControl(attitude_t_.roll, attitude_t_.pitch,control_t_.thrust);
+    else
+        ThrustControl(control_t_.thrust);
+/*
+    double roll_des, pitch_des, yaw_des;
+    AttitudeController(&roll_des, &pitch_des, &yaw_des);
+*/
     ROS_DEBUG("Position_x: %f, Position_y: %f, Position_z: %f", state_.position.x, state_.position.y, state_.position.z);
 
     ROS_DEBUG("Angular_velocity_x: %f, Angular_velocity_y: %f, Angular_velocity_z: %f", state_.angularVelocity.x, 
@@ -567,7 +514,7 @@ void MellingerController::CallbackHightLevelControl() {
 
     ROS_DEBUG("Linear_velocity_x: %f, Linear_velocity_y: %f, Linear_velocity_z: %f", state_.linearVelocity.x, 
              state_.linearVelocity.y, state_.linearVelocity.z);
-*/
+
 }
 
 // The aircraft angular velocities are update with a frequency of 500Hz

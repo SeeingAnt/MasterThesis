@@ -24,6 +24,8 @@
 #include <Eigen/Eigen>
 #include <stdio.h>
 
+#include <std_msgs/Bool.h>
+
 #include <geometry_msgs/PoseStamped.h>
 #include <mav_msgs/Actuators.h>
 #include <mav_msgs/AttitudeThrust.h>
@@ -77,6 +79,9 @@ namespace rotors_control {
             ros::Subscriber odometry_sub_;
             ros::Subscriber imu_sub_;
 
+            ros::Subscriber hover_active;
+            ros::Subscriber path_active;
+
             //publisher
             ros::Publisher motor_velocity_reference_pub_;
 
@@ -84,6 +89,8 @@ namespace rotors_control {
             std::deque<ros::Duration> command_waiting_times_;
             ros::Timer command_timer_;
 
+            void HoverCallback(const std_msgs::BoolConstPtr& );
+            void PathCallback(const std_msgs::BoolConstPtr&);
 
             void MultiDofJointTrajectoryCallback(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& trajectory_reference_msg);
 

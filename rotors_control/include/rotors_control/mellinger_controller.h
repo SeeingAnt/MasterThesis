@@ -59,14 +59,19 @@ namespace rotors_control {
             ComplementaryFilterCrazyflie2 complementary_filter_crazyflie_;
             CrazyflieOnboardController crazyflie_onboard_controller_;
 
-        private:
+            bool hover_is_active;
+            bool path_is_active;
+
+      private:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW
             bool controller_active_;
             bool state_estimator_active_;
 
+
             struct control_acc c_a;
 
             control_s control_t_;
+            attitude_s attitude_t_;
 
             //Integrator initial conditions
            double  error_x;
@@ -80,6 +85,7 @@ namespace rotors_control {
 
            // matrix conversion
            Eigen::Matrix4d Conversion;
+           Eigen::Matrix3d Rotation_wb;
 
             //Controller gains
             Eigen::Vector3f hover_xyz_stiff_kp_;
@@ -113,19 +119,15 @@ namespace rotors_control {
             sensorData_t sensors_;
             state_t state_;
 
-
+            void ThrustControl(double &thrust) const;
             void RPThrustControl(double &phi_des, double &theta_des,double &delta_F);
             void HoverControl( double* acc_x, double* acc_y, double* acc_z);
             void AttitudeError(Eigen::Vector3f &errorAngle ,Eigen::Vector3f &errorAngularVelocity);
-            void RateController(double* delta_phi, double* delta_theta, double* delta_psi);
-            void AttitudeController(double* p_command, double* q_command);
+            void AttitudeController(double* delta_roll, double* delta_pitch, double* delta_yaw);
             void ErrorBodyFrame(double* x_error_, double* y_error_,double* z_error_) const;
             void ErrorBodyFrame(double* x_error_, double* y_error_,double* z_error_, Eigen::Vector3d &velocity_error) const;
-            void HoveringController(double* delta_omega);
-            void YawPositionController(double* r_command);
             void PathFollowing3D(double* acc_x,double* acc_y, double* acc_z);
-            void XYController(double* theta_command, double* phi_command);
-            void ControlMixer(double* PWM_1, double* PWM_2, double* PWM_3, double* PWM_4); 
+            void ControlMixer(double* PWM_1, double* PWM_2, double* PWM_3, double* PWM_4);
             void Quaternion2Euler(double* roll, double* pitch, double* yaw) const;
 
     };
