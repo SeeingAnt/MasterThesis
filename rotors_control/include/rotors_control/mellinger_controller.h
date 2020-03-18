@@ -54,6 +54,11 @@ namespace rotors_control {
 	          void SetControllerGains();
             void CallbackAttitudeEstimation();
             void CallbackHightLevelControl();
+            void resetPathFollow();
+            void setPathFollow();
+            void resetHover();
+            void setHover();
+
 
             MellingerControllerParameters controller_parameters_;
             ComplementaryFilterCrazyflie2 complementary_filter_crazyflie_;
@@ -72,6 +77,9 @@ namespace rotors_control {
 
             control_s control_t_;
             attitude_s attitude_t_;
+
+            Eigen::Vector3f attitude_kp;
+            Eigen::Vector3f attitude_kd;
 
             //Integrator initial conditions
            double  error_x;

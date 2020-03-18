@@ -59,17 +59,17 @@ MellingerControlNode::MellingerControlNode() {
     }
 
 
-    //if (enable_state_estimator_){
+    if (enable_state_estimator_){
         imu_sub_ = nh.subscribe(mav_msgs::default_topics::IMU, 1, &MellingerControlNode::IMUCallback, this);
 
         //Timers allow to set up the working frequency of the control system
-        timer_Attitude_ = n_.createTimer(ros::Duration(ATTITUDE_UPDATE_DT), &MellingerControlNode::CallbackAttitudeEstimation, this, false, true);
+        //timer_Attitude_ = n_.createTimer(ros::Duration(ATTITUDE_UPDATE_DT), &MellingerControlNode::CallbackAttitudeEstimation, this, false, true);
 
         timer_highLevelControl = n_.createTimer(ros::Duration(SAMPLING_TIME), &MellingerControlNode::CallbackHightLevelControl, this, false, true);
 
         timer_IMUUpdate = n_.createTimer(ros::Duration(RATE_UPDATE_DT), &MellingerControlNode::CallbackIMUUpdate, this, false, true);
 
-    // }
+     }
 
 
 }
@@ -296,7 +296,7 @@ void MellingerControlNode::InitializeParams() {
     mellinger_controller_.SetControllerGains();
 
 
- // if (enable_state_estimator_)
+ //if (enable_state_estimator_)
    // mellinger_controller_.crazyflie_onboard_controller_.SetControllerGains(mellinger_controller_.controller_parameters_);
 
 }
@@ -322,13 +322,17 @@ void MellingerControlNode::IMUCallback(const sensor_msgs::ImuConstPtr& imu_msg) 
 
 }
 
-void MellingerControlNode::PathCallback(const std_msgs::BoolConstPtr& path_active)
-{
-    mellinger_controller_.path_is_active = path_active->data;
+void MellingerControlNode::PathCallback(const std_msgs::BoolConstPtr& path_active){
+ if (path_active->data)
+   mellinger_controller_.setPathFollow();
+ else
+   mellinger_controller_.resetPathFollow();
 }
-void MellingerControlNode::HoverCallback(const std_msgs::BoolConstPtr& hover_active)
-{
-    mellinger_controller_.hover_is_active = hover_active->data;
+void MellingerControlNode::HoverCallback(const std_msgs::BoolConstPtr& hover_active){
+  if(hover_active->data)
+    mellinger_controller_.setHover();
+  else
+   mellinger_controller_.resetHover();
 }
 
 void MellingerControlNode::OdometryCallback(const nav_msgs::OdometryConstPtr& odometry_msg) {
@@ -407,7 +411,7 @@ void MellingerControlNode::CallbackIMUUpdate(const ros::TimerEvent& event){
 	    actuator_msg->angular_velocities.clear();
 	    // for all propellers, we put them into actuator_msg so they will later be used to control the crazyflie.
 	    for (int i = 0; i < ref_rotor_velocities.size(); i++)
-	       actuator_msg->angular_velocities.push_back(ref_rotor_velocities[i]);
+         actuator_msg->angular_velocities.push_back(ref_rotor_velocities[i]);
 	    actuator_msg->header.stamp = imu_msg_head_stamp_;
 	    
 	    motor_velocity_reference_pub_.publish(actuator_msg);

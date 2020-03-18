@@ -27,6 +27,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
 #include <trajectory_msgs/MultiDOFJointTrajectory.h>
+#include "std_msgs/Bool.h"
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "hovering_example");
@@ -36,6 +37,11 @@ int main(int argc, char** argv) {
   ros::Publisher trajectory_pub =
       nh.advertise<trajectory_msgs::MultiDOFJointTrajectory>(
           mav_msgs::default_topics::COMMAND_TRAJECTORY, 10);
+
+   ros::Publisher hover_pub =
+      nh.advertise<std_msgs::Bool>("hover_active", 10);
+  
+
   ROS_INFO("Started hovering example.");
 
   std_srvs::Empty srv;
@@ -50,6 +56,10 @@ int main(int argc, char** argv) {
     ++i;
   }
 
+  std_msgs::Bool hover_active;
+  hover_active.data=true;
+  hover_pub.publish(hover_active);
+
   if (!unpaused) {
     ROS_FATAL("Could not wake up Gazebo.");
     return -1;
@@ -62,6 +72,7 @@ int main(int argc, char** argv) {
 
   trajectory_msgs::MultiDOFJointTrajectory trajectory_msg;
   trajectory_msg.header.stamp = ros::Time::now();
+
 
   // Default desired position and yaw.
   Eigen::Vector3d desired_position(0.0, 0.0, 1.0);

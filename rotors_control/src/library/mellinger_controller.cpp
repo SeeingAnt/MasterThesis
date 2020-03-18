@@ -32,12 +32,13 @@
 #include <nav_msgs/Odometry.h>
 #include <ros/console.h>
 
+#define THRUST_HOVER                             1.10
 #define GRAVITY                                  9.81 /* g [m/s^2]*/
 #define M_PI                                     3.14159265358979323846  /* pi [rad]*/
 #define OMEGA_OFFSET                             6874  /* OMEGA OFFSET [PWM]*/
 #define ANGULAR_MOTOR_COEFFICIENT                0.2685 /* ANGULAR_MOTOR_COEFFICIENT */
 #define MOTORS_INTERCEPT                         426.24 /* MOTORS_INTERCEPT [rad/s]*/
-#define MAX_PROPELLERS_ANGULAR_VELOCITY          2618 /* MAX PROPELLERS ANGULAR VELOCITY [rad/s]*/
+#define MAX_PROPELLERS_ANGULAR_VELOCITY          3618 /* MAX PROPELLERS ANGULAR VELOCITY [rad/s]*/
 #define MAX_R_DESIDERED                          3.4907 /* MAX R DESIDERED VALUE [rad/s]*/   
 #define MAX_THETA_COMMAND                        0.5236 /* MAX THETA COMMMAND [rad]*/
 #define MAX_PHI_COMMAND                          0.5236 /* MAX PHI COMMAND [rad]*/
@@ -48,10 +49,10 @@
 namespace rotors_control{
 
 MellingerController::MellingerController()
-    : controller_active_(false),
+    : hover_is_active(false),
+      path_is_active(false),
+    controller_active_(false),
     state_estimator_active_(false),
-    hover_is_active(false),
-    path_is_active(false),
     error_x(0),
     error_y(0),
     error_z(0){
@@ -161,8 +162,12 @@ void MellingerController::SetControllerGains(){
         Conversion_fw << bf, bf, bf, bf,
                          0.0, bf*l, 0.0, -bf*l,
                          -bf*l, 0.0, bf*l, 0.0,
-                         bm, bm, bm, bm;
+                         bm, -bm, bm, -bm;
         Conversion = Conversion_fw.inverse();
+
+        attitude_kp = attitude_kp_;
+        attitude_kd = attitude_kd_;
+
 
 }
 
@@ -180,20 +185,61 @@ void MellingerController::SetTrajectoryPoint(const mav_msgs::EigenTrajectoryPoin
     controller_active_= true;
 }
 
+void MellingerController::setHover()
+{
+  hover_is_active = true;
+
+  attitude_kp = hover_xyz_stiff_angle_kp_;
+  attitude_kd = hover_xyz_stiff_angle_kd_;
+
+}
+
+void MellingerController::resetHover()
+{
+  hover_is_active = false;
+
+  attitude_kp = attitude_kp_;
+  attitude_kd = attitude_kd_;
+
+}
+
+void MellingerController::setPathFollow()
+{
+  path_is_active = true;
+
+  attitude_kp = path_angle_kp_;
+  attitude_kd = path_angle_kd_;
+
+}
+
+void MellingerController::resetPathFollow()
+{
+  path_is_active = false;
+
+  attitude_kp = attitude_kp_;
+  attitude_kd = attitude_kd_;
+
+}
+
+
 void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_velocities) {
-    assert(rotor_velocities);
-    
+
     // This is to disable the controller if we do not receive a trajectory
     if(!controller_active_){
        *rotor_velocities = Eigen::Vector4d::Zero(rotor_velocities->rows());
     return;
     }
     
-    double PWM_1, PWM_2, PWM_3, PWM_4;
-    ControlMixer(&PWM_1, &PWM_2, &PWM_3, &PWM_4);
+    Eigen::Vector4d forces;
+    ControlMixer(&forces(0), &forces(1), &forces(2), &forces(3));
 
-    Eigen::Vector4d forces, omega;
+    Eigen::Vector4d omega;
     omega = Conversion*forces;
+
+    omega(0) = std::sqrt(omega(0));
+    omega(1) = std::sqrt(omega(1));
+    omega(2) = std::sqrt(omega(2));
+    omega(3) = std::sqrt(omega(3));
 
     //The omega values are saturated considering physical constraints of the system
     if(!(omega(0) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(0) > 0))
@@ -202,7 +248,13 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
         else
            omega(0) = 0;
 
-    if(!(omega(2) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(2) > 0))
+    if(!(omega(1) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(2) > 0))
+        if(omega(1) > MAX_PROPELLERS_ANGULAR_VELOCITY)
+           omega(1) = MAX_PROPELLERS_ANGULAR_VELOCITY;
+        else
+           omega(1) = 0;
+
+    if(!(omega(2) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(3) > 0))
         if(omega(2) > MAX_PROPELLERS_ANGULAR_VELOCITY)
            omega(2) = MAX_PROPELLERS_ANGULAR_VELOCITY;
         else
@@ -214,13 +266,7 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
         else
            omega(3) = 0;
 
-    if(!(omega(4) < MAX_PROPELLERS_ANGULAR_VELOCITY && omega(4) > 0))
-        if(omega(4) > MAX_PROPELLERS_ANGULAR_VELOCITY)
-           omega(4) = MAX_PROPELLERS_ANGULAR_VELOCITY;
-        else
-           omega(4) = 0;
-
-    ROS_DEBUG("Omega_1: %f Omega_2: %f Omega_3: %f Omega_4: %f", omega(1), omega(2), omega(3), omega(4));
+    ROS_DEBUG("Omega_1: %f Omega_2: %f Omega_3: %f Omega_4: %f", omega(0), omega(1), omega(2), omega(3));
     *rotor_velocities = omega;
 }
 
@@ -250,10 +296,10 @@ void MellingerController::ControlMixer(double* PWM_1, double* PWM_2, double* PWM
     assert(PWM_3);
     assert(PWM_4);
 
-    if(!state_estimator_active_)
-       // When the state estimator is disable, the delta_omega_ value is computed as soon as the new odometry message is available.
-       //The timing is managed by the publication of the odometry topic
-        ThrustControl(control_t_.thrust);
+    // When the state estimator is disable, the delta_omega_ value is computed as soon as the new odometry message is available.
+    //The timing is managed by the publication of the odometry topic
+    if (!state_estimator_active_)
+          CallbackHightLevelControl();
 
     // Control signals are sent to the on board control architecture if the state estimator is active
     double delta_phi, delta_theta, delta_psi;
@@ -378,9 +424,9 @@ void MellingerController::HoverControl( double* acc_x, double* acc_y, double* ac
     if(bho == true)
     {
         // Stiff hover
-        error_x = error_x + (hover_xyz_soft_ki_.x() * error_px * SAMPLING_TIME);
-        error_y = error_y + (hover_xyz_soft_ki_.y() * error_py * SAMPLING_TIME);
-        error_z = error_z + (hover_xyz_soft_ki_.z() * error_pz * SAMPLING_TIME);
+        error_x = error_x + (hover_xyz_stiff_ki_.x() * error_px * SAMPLING_TIME);
+        error_y = error_y + (hover_xyz_stiff_ki_.y() * error_py * SAMPLING_TIME);
+        error_z = error_z + (hover_xyz_stiff_ki_.z() * error_pz * SAMPLING_TIME);
 
         error_px = hover_xyz_stiff_kp_.x() * error_px;
         error_py = hover_xyz_stiff_kp_.y() * error_py;
@@ -411,17 +457,6 @@ void MellingerController::HoverControl( double* acc_x, double* acc_y, double* ac
 
 }
 
-void MellingerController::RPThrustControl(double &phi_des, double &theta_des,double &delta_F)
-{
-    double mass = controller_parameters_.mass;
-
-    phi_des = (c_a.z + GRAVITY)*(c_a.x * sin(command_trajectory_.getYaw()) - c_a.y * cos(command_trajectory_.getYaw()));
-    theta_des = (c_a.z + GRAVITY)*(c_a.x * cos(command_trajectory_.getYaw()) + c_a.y * sin(command_trajectory_.getYaw()));
-    delta_F = mass * (c_a.z + GRAVITY);
-
-}
-
-
 void MellingerController::AttitudeController(double* delta_roll, double* delta_pitch, double* delta_yaw) {
     assert(delta_roll);
     assert(delta_pitch);
@@ -432,9 +467,9 @@ void MellingerController::AttitudeController(double* delta_roll, double* delta_p
 
     AttitudeError(errorAngle ,errorAngularVelocity);
 
-    *delta_roll = attitude_kp_.x() * errorAngle.x() + attitude_kd_.x() * errorAngle.x();
-    *delta_pitch = attitude_kp_.y() * errorAngle.y() + attitude_kd_.y() * errorAngle.y();
-    *delta_yaw = attitude_kp_.z() * errorAngle.z() + attitude_kd_.z() * errorAngle.z();
+    *delta_roll = attitude_kp.x() * errorAngle.x() + attitude_kd.x() * errorAngularVelocity.x();
+    *delta_pitch = attitude_kp.y() * errorAngle.y() + attitude_kd.y() * errorAngularVelocity.y();
+    *delta_yaw = attitude_kp.z() * errorAngle.z() + attitude_kd.z() * errorAngularVelocity.z();
 
     ROS_DEBUG("roll_c: %f, roll_e: %f, ", *delta_roll, errorAngle(0));
     ROS_DEBUG("pitch_c: %f, pitch_e: %f", *delta_pitch, errorAngle(1));
@@ -458,6 +493,16 @@ void MellingerController::AttitudeError(Eigen::Vector3f &errorAngle ,Eigen::Vect
 
 }
 
+void MellingerController::RPThrustControl(double &phi_des, double &theta_des,double &delta_F)
+{
+    double mass = controller_parameters_.mass;
+
+    phi_des = (1/(c_a.z + GRAVITY))*(c_a.x * sin(command_trajectory_.getYaw()) - c_a.y * cos(command_trajectory_.getYaw()));
+    theta_des = (1/(c_a.z + GRAVITY))*(c_a.x * cos(command_trajectory_.getYaw()) + c_a.y * sin(command_trajectory_.getYaw()));
+    delta_F = mass * (c_a.z + GRAVITY);
+
+}
+
 void  MellingerController::ThrustControl(double &thrust) const
 {
     double mass = controller_parameters_.mass;
@@ -466,7 +511,11 @@ void  MellingerController::ThrustControl(double &thrust) const
 
     forces = mass * (forces + Eigen::Vector3d(0 ,0 , GRAVITY));
 
-    thrust = Rotation_wb.col(3).dot(forces);
+    Eigen::Vector3d col;
+    col(0) = Rotation_wb(0,2);
+    col(1) = Rotation_wb(1,2);
+    col(2) = Rotation_wb(2,2);
+    thrust = col.dot(forces);
 
 }
 
@@ -493,7 +542,6 @@ void MellingerController::CallbackAttitudeEstimation() {
 void MellingerController::CallbackHightLevelControl() {
 
 
-    if (hover_is_active)
         HoverControl( &c_a.x, &c_a.y, &c_a.z);
 
     if (path_is_active)
@@ -502,7 +550,7 @@ void MellingerController::CallbackHightLevelControl() {
     if (hover_is_active || path_is_active)
        RPThrustControl(attitude_t_.roll, attitude_t_.pitch,control_t_.thrust);
     else
-        ThrustControl(control_t_.thrust);
+       ThrustControl(control_t_.thrust);
 /*
     double roll_des, pitch_des, yaw_des;
     AttitudeController(&roll_des, &pitch_des, &yaw_des);
