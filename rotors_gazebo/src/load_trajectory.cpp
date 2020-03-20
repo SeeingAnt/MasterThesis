@@ -33,13 +33,13 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "reference_trajectory");
   ros::NodeHandle n;
   ros::Publisher pub = n.advertise<trajectory_msgs::MultiDOFJointTrajectory>
-                        (mav_msgs::default_topics::COMMAND_TRAJECTORY, 1000);
+                        (mav_msgs::default_topics::COMMAND_TRAJECTORY, 1);
   
   ros::Publisher hover_pub =
-     n.advertise<std_msgs::Bool>("hover_active", 10);
+     n.advertise<std_msgs::Bool>("hover_active", 1);
 
   ros::Publisher path_pub =
-     n.advertise<std_msgs::Bool>("path_active", 10);
+     n.advertise<std_msgs::Bool>("path_active", 1);
 
   ros::Rate loop_rate1(0.1);
 
@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
   hover.data = false;
   hover_pub.publish(hover);
 
+  loop_rate1.sleep();
   while (ros::ok()) {
 
     if (getline(input_file,row)) {
