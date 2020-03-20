@@ -72,17 +72,19 @@ namespace rotors_control {
             bool controller_active_;
             bool state_estimator_active_;
 
-
+            // control acceleration for RPThrustControl
             struct control_acc c_a;
+
 
             control_s control_t_;
             attitude_s attitude_t_;
 
+            // Actual attitude gains
             Eigen::Vector3f attitude_kp;
             Eigen::Vector3f attitude_kd;
 
-            //Integrator initial conditions
-           double  error_x;
+            //Integrator state
+           double error_x;
            double error_y;
            double error_z;
 
@@ -91,6 +93,7 @@ namespace rotors_control {
            double bm;
            double l;
 
+           Eigen::Matrix3d Rotation_des;
            // matrix conversion
            Eigen::Matrix4d Conversion;
            Eigen::Matrix3d Rotation_wb;
@@ -127,15 +130,29 @@ namespace rotors_control {
             sensorData_t sensors_;
             state_t state_;
 
+
+            Eigen::Vector3d veeOp(Eigen::Matrix3d );
+            // compute the thrust when hover and path control are not active
             void ThrustControl(double &thrust) const;
+
+            // compute the thrust and the desired angles according to the mellinger control for aggressive maneuvers
             void RPThrustControl(double &phi_des, double &theta_des,double &delta_F);
+
+
             void HoverControl( double* acc_x, double* acc_y, double* acc_z);
-            void AttitudeError(Eigen::Vector3f &errorAngle ,Eigen::Vector3f &errorAngularVelocity);
+
+            void AttitudeError(Eigen::Vector3d &errorAngle ,Eigen::Vector3f &errorAngularVelocity);
+
             void AttitudeController(double* delta_roll, double* delta_pitch, double* delta_yaw);
+
             void ErrorBodyFrame(double* x_error_, double* y_error_,double* z_error_) const;
             void ErrorBodyFrame(double* x_error_, double* y_error_,double* z_error_, Eigen::Vector3d &velocity_error) const;
-            void PathFollowing3D(double* acc_x,double* acc_y, double* acc_z);
+
+            void PathFollowing3D(double &delta_F);
+
+            // compute the forces/torques applying the attitude control
             void ControlMixer(double* PWM_1, double* PWM_2, double* PWM_3, double* PWM_4);
+
             void Quaternion2Euler(double* roll, double* pitch, double* yaw) const;
 
     };

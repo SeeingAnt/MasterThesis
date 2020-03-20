@@ -35,9 +35,13 @@ int main(int argc, char **argv) {
   ros::Publisher pub = n.advertise<trajectory_msgs::MultiDOFJointTrajectory>
                         (mav_msgs::default_topics::COMMAND_TRAJECTORY, 1000);
   
-  ros::Subscriber flag_sub_ = n.subscribe("flip_flag",10,&FlagCallback);
-  
-  ros::Rate loop_rate1(5);
+  ros::Publisher hover_pub =
+     n.advertise<std_msgs::Bool>("hover_active", 10);
+
+  ros::Publisher path_pub =
+     n.advertise<std_msgs::Bool>("path_active", 10);
+
+  ros::Rate loop_rate1(0.1);
 
   ifstream input_file;
   string row;
@@ -51,23 +55,38 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  ros::Duration(1.0).sleep();
 
+  std_msgs::Bool path;
+  std_msgs::Bool hover;
 
+  hover.data = true;
+  hover_pub.publish(hover);
+
+  getline(input_file,row);
+
+  trajectory_msgs::MultiDOFJointTrajectory trajectory_msg;
+
+  trajectory_msg.header.stamp = ros::Time::now();
+
+  istringstream iss(row);
+  vector<string> split((istream_iterator<string>(iss)),istream_iterator<string>());
+  //build_reference(split, trajectory_msg);
+  build_eight(split, trajectory_msg);
+
+  pub.publish(trajectory_msg);
+
+  ros::Duration(10.0).sleep();
+
+  path.data = true;
+  path_pub.publish(path);
+
+  hover.data = false;
+  hover_pub.publish(hover);
 
   while (ros::ok()) {
-/*
-     if (!flip_flag){
-      trajectory_msg.header.stamp = ros::Time::now();
 
-      build_reference(split_start, trajectory_msg, attitude_msg);
-
-      pub1.publish(attitude_msg);
-      pub.publish(trajectory_msg);
-
-     }
-
-*/
-    if (flip_flag && getline(input_file,row)) {
+    if (getline(input_file,row)) {
 
     trajectory_msgs::MultiDOFJointTrajectory trajectory_msg;
 
@@ -148,6 +167,8 @@ void build_eight(vector<string> line,
   Eigen::Quaterniond q;
   mav_msgs::EigenTrajectoryPoint point;
   Eigen::Vector3d desired_position(atof(line[0].c_str()), atof(line[1].c_str()), atof(line[2].c_str()));
+  Eigen::Vector3d desired_velocity(atof(line[6].c_str()),atof(line[7].c_str()),atof(line[8].c_str()));
+  Eigen::Vector3d desired_acceleration(atof(line[9].c_str()),atof(line[10].c_str()),atof(line[11].c_str()));
 
   std::cout << "ok";
   std::cout << atof(line[0].c_str()) << std::endl;
@@ -155,6 +176,8 @@ void build_eight(vector<string> line,
   q = quat_from_euler(atof(line[3].c_str()),atof(line[4].c_str()),atof(line[5].c_str()));
 
   point.position_W=desired_position;
+  point.velocity_W=desired_velocity;
+  point.acceleration_W = desired_acceleration;
   point.orientation_W_B=q;
 
   mav_msgs::msgMultiDofJointTrajectoryFromEigen(point, &trajectory_msg);

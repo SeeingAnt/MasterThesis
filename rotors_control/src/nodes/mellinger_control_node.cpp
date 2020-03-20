@@ -63,7 +63,7 @@ MellingerControlNode::MellingerControlNode() {
         imu_sub_ = nh.subscribe(mav_msgs::default_topics::IMU, 1, &MellingerControlNode::IMUCallback, this);
 
         //Timers allow to set up the working frequency of the control system
-        //timer_Attitude_ = n_.createTimer(ros::Duration(ATTITUDE_UPDATE_DT), &MellingerControlNode::CallbackAttitudeEstimation, this, false, true);
+        timer_Attitude_ = n_.createTimer(ros::Duration(ATTITUDE_UPDATE_DT), &MellingerControlNode::CallbackAttitudeEstimation, this, false, true);
 
         timer_highLevelControl = n_.createTimer(ros::Duration(SAMPLING_TIME), &MellingerControlNode::CallbackHightLevelControl, this, false, true);
 
@@ -244,14 +244,14 @@ void MellingerControlNode::InitializeParams() {
                     &mellinger_controller_.controller_parameters_.path_angle_kd_.z());
 
     GetRosParameter(pnh, "path_kp/x",
-                    mellinger_controller_.controller_parameters_.path_angle_kd_.x(),
-                    &mellinger_controller_.controller_parameters_.path_angle_kd_.x());
+                    mellinger_controller_.controller_parameters_.path_kp_.x(),
+                    &mellinger_controller_.controller_parameters_.path_kp_.x());
     GetRosParameter(pnh, "path_kp/y",
-                    mellinger_controller_.controller_parameters_.path_angle_kd_.y(),
-                    &mellinger_controller_.controller_parameters_.path_angle_kd_.y());
+                    mellinger_controller_.controller_parameters_.path_kp_.y(),
+                    &mellinger_controller_.controller_parameters_.path_kp_.y());
     GetRosParameter(pnh, "path_kp/z",
-                    mellinger_controller_.controller_parameters_.path_angle_kd_.z(),
-                    &mellinger_controller_.controller_parameters_.path_angle_kd_.z());
+                    mellinger_controller_.controller_parameters_.path_kp_.z(),
+                    &mellinger_controller_.controller_parameters_.path_kp_.z());
     GetRosParameter(pnh, "path_kd/x",
                     mellinger_controller_.controller_parameters_.path_kd_.x(),
                     &mellinger_controller_.controller_parameters_.path_kd_.x());

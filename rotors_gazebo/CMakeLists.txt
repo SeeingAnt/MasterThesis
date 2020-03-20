@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(rotors_gazebo)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 add_definitions(-std=c++11)
 
 #--------------------------#
@@ -52,6 +54,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   cmake_modules
+  roslib
 )
 
 find_package(
@@ -60,7 +63,7 @@ find_package(
 
 catkin_package(
   INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS}
-  CATKIN_DEPENDS geometry_msgs mav_msgs nav_msgs roscpp sensor_msgs gazebo_msgs
+  CATKIN_DEPENDS geometry_msgs mav_msgs nav_msgs roscpp sensor_msgs gazebo_msgs roslib
   DEPENDS Eigen
 )
 
@@ -82,6 +85,10 @@ add_executable(hovering_example src/hovering_example.cpp)
 target_link_libraries(hovering_example ${catkin_LIBRARIES})
 add_dependencies(hovering_example ${catkin_EXPORTED_TARGETS})
 
+add_executable(load_trajectory src/load_trajectory.cpp)
+target_link_libraries(load_trajectory ${catkin_LIBRARIES})
+add_dependencies(load_trajectory ${catkin_EXPORTED_TARGETS})
+
 add_executable(quaternion_to_rpy src/quaternion_to_rpy.cpp)
 target_link_libraries(quaternion_to_rpy ${catkin_LIBRARIES})
 add_dependencies(quaternion_to_rpy ${catkin_EXPORTED_TARGETS})
@@ -91,7 +98,7 @@ foreach(dir launch models resource worlds)
       DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/${dir})
 endforeach(dir)
 
-install(TARGETS waypoint_publisher waypoint_publisher_file hovering_example quaternion_to_rpy
+install(TARGETS waypoint_publisher waypoint_publisher_file load_trajectory hovering_example quaternion_to_rpy
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

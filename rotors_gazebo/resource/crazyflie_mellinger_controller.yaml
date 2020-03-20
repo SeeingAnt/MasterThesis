@@ -9,11 +9,11 @@
 # ki_z: {z: 0.05} # Integral gain
 
 # Hover Stiff
-hover_stiff_kp: {x: 3 ,y: 3, z: 0.3}
+hover_stiff_kp: {x: 10 ,y: 10, z: 0.3}
 hover_stiff_ki: {x: 0.01,y: 0.01, z: 0.001}
-hover_stiff_kd: {x: 1,y: 1 ,z: 1}
-hover_stiff_angle_kp: {phi: 0.002, theta: 0.002, psi: 0.00001 }
-hover_stiff_angle_kd: {phi: 0.001 ,theta: 0.001 ,psi: 0.0001 }
+hover_stiff_kd: {x: 0.1,y: 0.1 ,z: 1}
+hover_stiff_angle_kp: {phi: 0.01, theta: 0.01, psi: 0.00001 }
+hover_stiff_angle_kd: {phi: 0.002 ,theta: 0.002 ,psi: 0.00001 }
 
 # Hover Soft
 hover_soft_kp: {x: 1.0 ,y: 1.0 ,z: 1.0 }
@@ -23,16 +23,16 @@ hover_soft_angle_kp: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
 hover_soft_angle_kd: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
 
 #3D Path Following
-path_angle_kp: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
-path_angle_kd: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
-path_kp: {x: 1.0, y: 1.0, z: 1.0 }
-path_kd: {x: 1.0, y: 1.0, z: 1.0 }
+path_angle_kp: {phi: 0.003, theta: 0.003, psi: 0.00001 }
+path_angle_kd: {phi: 0.002 ,theta: 0.002 ,psi: 0.00001 }
+path_kp: {x: 0.2 ,y: 0.2, z: 0.5}
+path_kd: {x: 0.04,y: 0.04 ,z: 0.1}
 
 
 
 # Attitude
-attitude_kp: {phi: 0.002, theta: 0.002, psi: 0.0001 }
-attitude_kd: {phi: 0.001 ,theta: 0.001 ,psi: 0.001 }
+attitude_kp: {phi: 0.005, theta: 0.005, psi: 0.0001 }
+attitude_kd: {phi: 0.002 ,theta: 0.002 ,psi: 0.00001 }
 # kr_xy: {x: 0.4, y: 0.4} # Proportional gain
 # kw_xy: {x: 0.2, y: 0.2} # Derivative gain
 # ki_m_xy: {x: 0.05, y: 0.05} # Integral gain
