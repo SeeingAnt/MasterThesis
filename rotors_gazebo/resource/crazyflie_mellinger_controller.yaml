@@ -30,6 +30,7 @@ path_kd: {x: 0.8, y: 0.8, z: 0.5}
 
 
 
+
 # Attitude
 attitude_kp: {phi: 0.01, theta: 0.01, psi: 0.01 }
 attitude_kd: {phi: 0.001 ,theta: 0.001 ,psi: 0.01 }
