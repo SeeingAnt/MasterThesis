@@ -28,9 +28,9 @@
 #include "rotors_control/stabilizer_types.h"
 #include "rotors_control/crazyflie_complementary_filter.h"
 
-#define ATTITUDE_UPDATE_DT 0.004  /* ATTITUDE UPDATE RATE [s] - 500Hz */
-#define RATE_UPDATE_DT 0.002      /* RATE UPDATE RATE [s] - 250Hz */
-#define SAMPLING_TIME  0.01       /* SAMPLING CONTROLLER TIME [s] - 100Hz */
+#define ATTITUDE_UPDATE_DT 0.0004  /* ATTITUDE UPDATE RATE [s] - 500Hz */
+#define RATE_UPDATE_DT 0.0002      /* RATE UPDATE RATE [s] - 250Hz */
+#define SAMPLING_TIME  0.001       /* SAMPLING CONTROLLER TIME [s] - 100Hz */
 
 namespace rotors_control {
 
