@@ -79,6 +79,7 @@ namespace rotors_control {
             ros::Subscriber odometry_sub_;
             ros::Subscriber imu_sub_;
 
+            ros::Subscriber active_controller_sub_;
             ros::Subscriber hover_active;
             ros::Subscriber path_active;
 
@@ -91,6 +92,8 @@ namespace rotors_control {
 
             void HoverCallback(const std_msgs::BoolConstPtr& );
             void PathCallback(const std_msgs::BoolConstPtr&);
+
+            void ActiveCallback(const std_msgs::BoolConstPtr& );
 
             void MultiDofJointTrajectoryCallback(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& trajectory_reference_msg);
 

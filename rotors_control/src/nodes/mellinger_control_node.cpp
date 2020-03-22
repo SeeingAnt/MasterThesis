@@ -45,6 +45,8 @@ MellingerControlNode::MellingerControlNode() {
 
     cmd_multi_dof_joint_trajectory_sub_ = nh.subscribe(mav_msgs::default_topics::COMMAND_TRAJECTORY, 1,  &MellingerControlNode::MultiDofJointTrajectoryCallback, this);
 
+    active_controller_sub_ = nh.subscribe("control_flag",1,&MellingerControlNode::ActiveCallback, this);
+
     odometry_sub_ = nh.subscribe(mav_msgs::default_topics::ODOMETRY, 1, &MellingerControlNode::OdometryCallback, this);
 
     motor_velocity_reference_pub_ = nh.advertise<mav_msgs::Actuators>(mav_msgs::default_topics::COMMAND_ACTUATORS, 1);
@@ -75,6 +77,12 @@ MellingerControlNode::MellingerControlNode() {
 }
 
 MellingerControlNode::~MellingerControlNode(){}
+
+void MellingerControlNode::ActiveCallback(const std_msgs::BoolConstPtr& msg){
+
+  mellinger_controller_.active = msg->data;
+
+}
 
 
 void MellingerControlNode::MultiDofJointTrajectoryCallback(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg) {

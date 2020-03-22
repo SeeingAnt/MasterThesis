@@ -66,15 +66,16 @@ namespace rotors_control {
 
             bool hover_is_active;
             bool path_is_active;
+            bool active;
 
       private:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
             bool controller_active_;
             bool state_estimator_active_;
 
             // control acceleration for RPThrustControl
             struct control_acc c_a;
-
 
             control_s control_t_;
             attitude_s attitude_t_;

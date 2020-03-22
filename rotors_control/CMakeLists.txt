@@ -86,6 +86,10 @@ add_dependencies(lee_position_controller_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(lee_position_controller_node
   lee_position_controller ${catkin_LIBRARIES})
 
+add_executable(supervisor src/supervisor.cpp)
+add_dependencies(supervisor ${catkin_EXPORTED_TARGETS})
+target_link_libraries(supervisor ${catkin_LIBRARIES})
+
 add_executable(mellinger_controller_node src/nodes/mellinger_control_node.cpp)
 add_dependencies(mellinger_controller_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(mellinger_controller_node

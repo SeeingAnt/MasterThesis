@@ -53,6 +53,7 @@ MellingerController::MellingerController()
       path_is_active(false),
     controller_active_(false),
     state_estimator_active_(false),
+    active(true),
     error_x(0),
     error_y(0),
     error_z(0){
@@ -184,8 +185,12 @@ void MellingerController::SetTrajectoryPoint(const mav_msgs::EigenTrajectoryPoin
     tf::Matrix3x3 m(q);
     m.getRPY(attitude_t_.roll, attitude_t_.pitch, attitude_t_.yaw);
     
+    if(active)
     controller_active_= true;
+    else
+    controller_active_ = false;
 }
+
 
 void MellingerController::setHover()
 {
@@ -232,7 +237,7 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
     // This is to disable the controller if we do not receive a trajectory
     if(!controller_active_){
        *rotor_velocities = Eigen::Vector4d::Zero(rotor_velocities->rows());
-    return;
+        return;
     }
     
     Eigen::Vector4d forces;
