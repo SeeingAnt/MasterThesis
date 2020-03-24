@@ -16,23 +16,23 @@ hover_stiff_angle_kp: {phi: 0.01, theta: 0.01, psi: 0.00001 }
 hover_stiff_angle_kd: {phi: 0.002 ,theta: 0.002 ,psi: 0.0001 }
 
 # Hover Soft
-hover_soft_kp: {x: 10.0 ,y: 10.0 ,z: 120.0 }
+hover_soft_kp: {x: 15.0 ,y: 15.0 ,z: 130.0 }
 hover_soft_ki: {x: 0.01 ,y: 0.01 ,z: 0.3 }
-hover_soft_kd: {x: 0.1 ,y: 0.1 ,z: 35.0 }
+hover_soft_kd: {x: 0.1 ,y: 0.1 ,z: 30.0 }
 hover_soft_angle_kp: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
 hover_soft_angle_kd: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
 
 #3D Path Following
-path_angle_kp: {phi: 0.009, theta: 0.009, psi: 0.006 }
-path_angle_kd: {phi: 0.008 ,theta: 0.008 ,psi: 0.005 }
-path_kp: {x: 0.7, y: 0.7, z: 0.6}
-path_kd: {x: 0.8, y: 0.8, z: 0.5}
+path_angle_kp: {phi: 0.016, theta: 0.016, psi: 0.0002 }
+path_angle_kd: {phi: 0.0016 ,theta: 0.0016 ,psi: 0.0001 }
+path_kp: {x: 0.69, y: 0.69, z: 0.6}
+path_kd: {x: 0.069, y: 0.069, z: 0.5}
 
 
 
 
 # Attitude
-attitude_kp: {phi: 0.003, theta: 0.003, psi: 0.02 }
+attitude_kp: {phi: 0.004, theta: 0.004, psi: 0.02 }
 attitude_kd: {phi: 0.0005 ,theta: 0.005 ,psi: 0.01 }
 # kr_xy: {x: 0.4, y: 0.4} # Proportional gain
 # kw_xy: {x: 0.2, y: 0.2} # Derivative gain

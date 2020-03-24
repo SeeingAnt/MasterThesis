@@ -41,14 +41,14 @@ int main(int argc, char **argv) {
   ros::Publisher path_pub =
      n.advertise<std_msgs::Bool>("path_active", 1);
 
-  ros::Rate loop_rate1(1000);
+  ros::Rate loop_rate1(1);
 
   ifstream input_file;
   string row;
 
-  input_file.open((ros::package::getPath("rotors_gazebo")+"/src/traj.txt").c_str());
+  //input_file.open((ros::package::getPath("rotors_gazebo")+"/src/traj.txt").c_str());
 
-  //input_file.open((ros::package::getPath("rotors_gazebo")+"/src/eight_traj.txt").c_str());
+  input_file.open((ros::package::getPath("rotors_gazebo")+"/src/eight_traj.txt").c_str());
 
   if (!input_file) {
     ROS_INFO("Unable to open file!");
@@ -71,14 +71,14 @@ int main(int argc, char **argv) {
 
   istringstream iss(row);
   vector<string> split((istream_iterator<string>(iss)),istream_iterator<string>());
-  build_reference(split, trajectory_msg);
-  //build_eight(split, trajectory_msg);
+  //build_reference(split, trajectory_msg);
+  build_eight(split, trajectory_msg);
 
   pub.publish(trajectory_msg);
 
   ros::Duration(10.0).sleep();
 
-  path.data = false;
+  path.data = true;
   path_pub.publish(path);
 
   hover.data = false;
@@ -93,8 +93,8 @@ int main(int argc, char **argv) {
 
     istringstream iss(row);
     vector<string> split((istream_iterator<string>(iss)),istream_iterator<string>());
-    build_reference(split, trajectory_msg);
-    //build_eight(split, trajectory_msg);
+    //build_reference(split, trajectory_msg);
+    build_eight(split, trajectory_msg);
 
     pub.publish(trajectory_msg);
 
@@ -104,6 +104,9 @@ int main(int argc, char **argv) {
     loop_rate1.sleep();
 
   }
+
+  path.data = false;
+  path_pub.publish(path);
 
   hover.data = true;
   hover_pub.publish(hover);
