@@ -24,7 +24,8 @@ void build_reference(vector<string> line,
 void FlagCallback(const std_msgs::BoolConstPtr& flag_msg);
 void build_eight(vector<string> line, 
           trajectory_msgs::MultiDOFJointTrajectory &trajectory_msg);
-
+void build_traj(vector<string> line,
+          trajectory_msgs::MultiDOFJointTrajectory &trajectory_msg);
 
 bool flip_flag = false;
 
@@ -41,14 +42,14 @@ int main(int argc, char **argv) {
   ros::Publisher path_pub =
      n.advertise<std_msgs::Bool>("path_active", 1);
 
-  ros::Rate loop_rate1(1);
+  ros::Rate loop_rate1(25);
 
   ifstream input_file;
   string row;
 
   //input_file.open((ros::package::getPath("rotors_gazebo")+"/src/traj.txt").c_str());
-
-  input_file.open((ros::package::getPath("rotors_gazebo")+"/src/eight_traj.txt").c_str());
+  input_file.open((ros::package::getPath("rotors_gazebo")+"/src/prova.txt").c_str());
+  //input_file.open((ros::package::getPath("rotors_gazebo")+"/src/eight_traj.txt").c_str());
 
   if (!input_file) {
     ROS_INFO("Unable to open file!");
@@ -72,7 +73,8 @@ int main(int argc, char **argv) {
   istringstream iss(row);
   vector<string> split((istream_iterator<string>(iss)),istream_iterator<string>());
   //build_reference(split, trajectory_msg);
-  build_eight(split, trajectory_msg);
+  //build_eight(split, trajectory_msg);
+  build_traj(split, trajectory_msg);
 
   pub.publish(trajectory_msg);
 
@@ -94,11 +96,10 @@ int main(int argc, char **argv) {
     istringstream iss(row);
     vector<string> split((istream_iterator<string>(iss)),istream_iterator<string>());
     //build_reference(split, trajectory_msg);
-    build_eight(split, trajectory_msg);
+    //build_eight(split, trajectory_msg);
+    build_traj(split, trajectory_msg);
 
     pub.publish(trajectory_msg);
-
-
 
     ros::spinOnce();
     loop_rate1.sleep();
@@ -163,11 +164,6 @@ void build_reference(vector<string> line,
   point.orientation_W_B=q;
 
   mav_msgs::msgMultiDofJointTrajectoryFromEigen(point, &trajectory_msg);
-/*
-   attitude_msg.roll = 0;
-   attitude_msg.pitch = atof(line[2].c_str());
-   attitude_msg.yaw_rate = 0;
-*/
 
 }
 
@@ -193,9 +189,28 @@ void build_eight(vector<string> line,
 
   mav_msgs::msgMultiDofJointTrajectoryFromEigen(point, &trajectory_msg);
 
-  // fill the message for the attitude
-    /*attitude_msg.roll = atof(line[3].c_str());
-    attitude_msg.pitch = atof(line[4].c_str());
-    attitude_msg.yaw_rate = atof(line[5].c_str());
-  */
+}
+
+void build_traj(vector<string> line,
+          trajectory_msgs::MultiDOFJointTrajectory &trajectory_msg) {
+
+  Eigen::Quaterniond q;
+  mav_msgs::EigenTrajectoryPoint point;
+  Eigen::Vector3d desired_position(atof(line[0].c_str()), atof(line[1].c_str()), atof(line[2].c_str()));
+  Eigen::Vector3d desired_velocity(atof(line[4].c_str()),atof(line[5].c_str()),atof(line[6].c_str()));
+  Eigen::Vector3d desired_acceleration(atof(line[8].c_str()),atof(line[9].c_str()),atof(line[10].c_str()));
+
+  std::cout << "ok";
+  std::cout << atof(line[0].c_str()) << std::endl;
+
+  q = quat_from_euler(atof(line[3].c_str()),0,0);
+
+  point.position_W=desired_position;
+  point.velocity_W=desired_velocity;
+  point.acceleration_W = desired_acceleration;
+  point.orientation_W_B=q;
+
+  mav_msgs::msgMultiDofJointTrajectoryFromEigen(point, &trajectory_msg);
+
+
 }

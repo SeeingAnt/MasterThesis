@@ -55,6 +55,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   cmake_modules
   roslib
+  rospy
 )
 
 find_package(
@@ -63,7 +64,7 @@ find_package(
 
 catkin_package(
   INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS}
-  CATKIN_DEPENDS geometry_msgs mav_msgs nav_msgs roscpp sensor_msgs gazebo_msgs roslib
+  CATKIN_DEPENDS geometry_msgs mav_msgs nav_msgs roscpp rospy sensor_msgs gazebo_msgs roslib
   DEPENDS Eigen
 )
 

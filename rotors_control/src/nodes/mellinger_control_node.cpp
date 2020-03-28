@@ -30,7 +30,7 @@
 
 #define ATTITUDE_UPDATE_DT 0.0004  /* ATTITUDE UPDATE RATE [s] - 500Hz */
 #define RATE_UPDATE_DT 0.0002      /* RATE UPDATE RATE [s] - 250Hz */
-#define SAMPLING_TIME  0.001       /* SAMPLING CONTROLLER TIME [s] - 100Hz */
+#define SAMPLING_TIME  0.002       /* SAMPLING CONTROLLER TIME [s] - 100Hz */
 
 namespace rotors_control {
 

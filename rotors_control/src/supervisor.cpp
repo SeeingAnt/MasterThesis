@@ -18,10 +18,10 @@ int main(int argc, char **argv) {
 
   std_msgs::Bool c_flag, f_flag;
   ros::Duration hov(12.0);
-  ros::Duration reach(12.77);
-  //ros::Duration reach(13.10);
-  ros::Duration flip(12.98);
-  //ros::Duration flip(13.47);
+  //ros::Duration reach(12.77);
+  ros::Duration reach(13.145);
+  //ros::Duration flip(12.98);
+  ros::Duration flip(13.34);
   ros::Duration rec(13.7);
 
   ros::Rate loop_rate(1000);

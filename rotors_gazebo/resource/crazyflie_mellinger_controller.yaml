@@ -1,53 +1,27 @@
 # Mellinger controller parameters
-# kp_xy: {x: 0.4, y: 0.4} # Proportional gain
-# kd_xy: {x: 0.2, y: 0.2}  # Derivative gain
-# ki_xy: {x: 0.05, y: 0.05} # Integral gain
-
-# Z Position
-# kp_z: {z: 1.25} # Proportional gain
-# kd_z: {z: 0.4}  # Derivative gain
-# ki_z: {z: 0.05} # Integral gain
 
 # Hover Stiff
-hover_stiff_kp: {x: 10 ,y: 10, z: 0.3}
+hover_stiff_kp: {x: 10 ,y: 10, z: 0.75}
 hover_stiff_ki: {x: 0.01,y: 0.01, z: 0.001}
-hover_stiff_kd: {x: 0.1,y: 0.1 ,z: 1}
-hover_stiff_angle_kp: {phi: 0.01, theta: 0.01, psi: 0.00001 }
+hover_stiff_kd: {x: 0.1,y: 0.1 ,z: 2}
+hover_stiff_angle_kp: {phi: 0.009, theta: 0.009, psi: 0.0002 }
 hover_stiff_angle_kd: {phi: 0.002 ,theta: 0.002 ,psi: 0.0001 }
 
 # Hover Soft
-hover_soft_kp: {x: 15.0 ,y: 15.0 ,z: 130.0 }
-hover_soft_ki: {x: 0.01 ,y: 0.01 ,z: 0.3 }
-hover_soft_kd: {x: 0.1 ,y: 0.1 ,z: 30.0 }
+hover_soft_kp: {x: 15.0 ,y: 15.0 ,z: 140.0 }
+hover_soft_ki: {x: 0.01 ,y: 0.01 ,z: 0.09 }
+hover_soft_kd: {x: 0.1 ,y: 0.1 ,z: 45.0 }
 hover_soft_angle_kp: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
 hover_soft_angle_kd: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
 
 #3D Path Following
-path_angle_kp: {phi: 0.016, theta: 0.016, psi: 0.0002 }
-path_angle_kd: {phi: 0.0016 ,theta: 0.0016 ,psi: 0.0001 }
+path_angle_kp: {phi: 0.025, theta: 0.025, psi: 0.0002 }
+path_angle_kd: {phi: 0.005 ,theta: 0.005 ,psi: 0.0001 }
 path_kp: {x: 0.69, y: 0.69, z: 0.6}
-path_kd: {x: 0.069, y: 0.069, z: 0.5}
-
-
+path_kd: {x: 0.079, y: 0.079, z: 0.5}
 
 
 # Attitude
-attitude_kp: {phi: 0.004, theta: 0.004, psi: 0.02 }
-attitude_kd: {phi: 0.0005 ,theta: 0.005 ,psi: 0.01 }
-# kr_xy: {x: 0.4, y: 0.4} # Proportional gain
-# kw_xy: {x: 0.2, y: 0.2} # Derivative gain
-# ki_m_xy: {x: 0.05, y: 0.05} # Integral gain
+attitude_kp: {phi: 0.011, theta: 0.011, psi: 0.002 }
+attitude_kd: {phi: 0.005 ,theta: 0.005 ,psi: 0.001 }
 
-# Yaw
-#kr_z: {z: 1.25} # Proportional gain
-#kw_z: {z: 0.4} # Derivative gain
-#ki_m_z: {z: 0.05} # Integral gain
-
-# Error boundaries
-#i_range_m_z: {z: 1500} # Ros chapter equation 8
-#i_range_m_xy: {x: 1.0, y: 1.0}
-#i_range_z: {z: 0.4}
-#i_range_xy: {x: 2.0, y: 2.0}
-
-# roll and pitch angular velocity
-#kd_omega_rp: {r: 0.002, p: 0.002} # Derivative gain

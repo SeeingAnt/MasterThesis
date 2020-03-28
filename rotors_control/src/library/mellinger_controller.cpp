@@ -237,6 +237,9 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
     // This is to disable the controller if we do not receive a trajectory
     if(!controller_active_){
        *rotor_velocities = Eigen::Vector4d::Zero(rotor_velocities->rows());
+       error_x = 0;
+       error_y = 0;
+       error_z = 0;
         return;
     }
     
@@ -246,14 +249,14 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
     Eigen::Vector4d omega;
     omega = Conversion*forces;
 
-    if(omega(0) < 0)
-       omega(0) = 0;
-    if(omega(1) < 0)
-       omega(1) = 0;
-    if(omega(2) < 0)
-       omega(2) = 0;
-    if(omega(3) < 0)
-       omega(3) = 0;
+    if(omega(0) < 1000)
+       omega(0) = 1000;
+    if(omega(1) < 1000)
+       omega(1) = 1000;
+    if(omega(2) < 1000)
+       omega(2) = 1000;
+    if(omega(3) < 1000)
+       omega(3) = 1000;
 
     omega(0) = std::sqrt(omega(0));
     omega(1) = std::sqrt(omega(1));

@@ -49,6 +49,7 @@
       <!-- Crazyflie file parameters used within the Position and Mellinger controllers. For more details on how the crazyflie2
            controller architecture, see what is reported at this page https://www.bitcraze.io/2020/02/out-of-control/ -->
       <rosparam command="load" file="$(find rotors_gazebo)/resource/crazyflie_parameters.yaml" />
+      <rosparam command="load" file="$(find rotors_gazebo)/resource/wind_param.yaml"/>
       <rosparam unless="$(arg enable_state_estimator)" command="load" file="$(find rotors_gazebo)/resource/controller_$(arg mav_name).yaml" />
       <rosparam if="$(arg enable_state_estimator)" command="load" file="$(find rotors_gazebo)/resource/controller_$(arg mav_name)_with_stateEstimator.yaml" />
       <rosparam command="load" file="$(find rotors_gazebo)/resource/$(arg mav_name).yaml" />
@@ -58,6 +59,7 @@
    <!-- Enable/Disable the trajectory generator - If the position_controller is activated, the hovering_example will be executed,
         otherwise the spline generator and the Mellinger's controller will be run-->
    <node  name="hovering_example" pkg="rotors_gazebo" type="hovering_example" output="screen" />
+   <node name="wind_generator" pkg="rotors_gazebo" type="wind_generator.py" output="screen"/>
    <!-- <node if="$(arg enable_mellinger_controller)" name="hovering_example_spline" pkg="rotors_gazebo" type="hovering_example_spline" output="screen" >
      <rosparam command="load" file="$(find rotors_gazebo)/resource/spline_trajectory.yaml" />
    </node> -->
