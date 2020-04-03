@@ -31,6 +31,7 @@
 
 #include <nav_msgs/Odometry.h>
 #include <ros/console.h>
+#include <tf_conversions/tf_eigen.h>
 
 #define THRUST_HOVER                             1.10
 #define GRAVITY                                  9.81 /* g [m/s^2]*/
@@ -44,7 +45,7 @@
 #define MAX_PHI_COMMAND                          0.5236 /* MAX PHI COMMAND [rad]*/
 #define MAX_POS_DELTA_OMEGA                      1289 /* MAX POSITIVE DELTA OMEGA [PWM]*/
 #define MAX_NEG_DELTA_OMEGA                      -1718 /* MAX NEGATIVE DELTA OMEGA [PWM]*/
-#define SAMPLING_TIME                            0.001 /* SAMPLING TIME [s] */
+#define SAMPLING_TIME                            0.002 /* SAMPLING TIME [s] */
 
 namespace rotors_control{
 
@@ -163,9 +164,9 @@ void MellingerController::SetControllerGains(){
 
         Eigen::Matrix4d Conversion_fw;
         Conversion_fw << bf, bf, bf, bf,
-                         0.0, bf*l, 0.0, -bf*l,
+                         0.0, -bf*l, 0.0, bf*l,
                          -bf*l, 0.0, bf*l, 0.0,
-                         bm, -bm, bm, -bm;
+                         -bm, bm, -bm, bm;
         Conversion = Conversion_fw.inverse();
 
         attitude_kp = attitude_kp_;
@@ -177,13 +178,6 @@ void MellingerController::SetControllerGains(){
 void MellingerController::SetTrajectoryPoint(const mav_msgs::EigenTrajectoryPoint& command_trajectory) {
 
     command_trajectory_= command_trajectory;
-
-    tf::Quaternion q( command_trajectory_.orientation_W_B.x(),
-                      command_trajectory_.orientation_W_B.y(),
-                      command_trajectory_.orientation_W_B.z(),
-                      command_trajectory_.orientation_W_B.w());
-    tf::Matrix3x3 m(q);
-    m.getRPY(attitude_t_.roll, attitude_t_.pitch, attitude_t_.yaw);
     
     if(active)
     controller_active_= true;
@@ -235,11 +229,13 @@ void MellingerController::resetPathFollow()
 void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_velocities) {
 
     // This is to disable the controller if we do not receive a trajectory
-    if(!controller_active_){
+    if(!controller_active_ || (state_.attitudeQuaternion.x > 0.707 && state_.attitudeQuaternion.x < 1
+                               && state_.attitudeQuaternion.x > -1 && state_.attitudeQuaternion.x < -0.707 )){
        *rotor_velocities = Eigen::Vector4d::Zero(rotor_velocities->rows());
        error_x = 0;
        error_y = 0;
        error_z = 0;
+       ROS_INFO("Deactiveted, angle: %f", state_.attitudeQuaternion.x);
         return;
     }
     
@@ -249,14 +245,14 @@ void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_veloci
     Eigen::Vector4d omega;
     omega = Conversion*forces;
 
-    if(omega(0) < 1000)
-       omega(0) = 1000;
-    if(omega(1) < 1000)
-       omega(1) = 1000;
-    if(omega(2) < 1000)
-       omega(2) = 1000;
-    if(omega(3) < 1000)
-       omega(3) = 1000;
+    if(omega(0) < 500)
+       omega(0) = 500;
+    if(omega(1) < 500)
+       omega(1) = 500;
+    if(omega(2) < 500)
+       omega(2) = 500;
+    if(omega(3) < 500)
+       omega(3) = 500;
 
     omega(0) = std::sqrt(omega(0));
     omega(1) = std::sqrt(omega(1));
@@ -322,8 +318,8 @@ void MellingerController::ControlMixer(double* PWM_1, double* PWM_2, double* PWM
     AttitudeController(&delta_phi, &delta_theta, &delta_psi);
 
     *PWM_1 = control_t_.thrust;
-    *PWM_2 = delta_theta;
-    *PWM_3 = delta_phi;
+    *PWM_2 = delta_phi;
+    *PWM_3 = delta_theta;
     *PWM_4 = delta_psi;
 
     ROS_DEBUG("Omega: %f, Delta_theta: %f, Delta_phi: %f, delta_psi: %f", control_t_.thrust, delta_theta, delta_phi, delta_psi);
@@ -517,53 +513,27 @@ void MellingerController::AttitudeError(Eigen::Vector3d &errorAngle ,Eigen::Vect
   errorAngularVelocity.y() = command_trajectory_.angular_velocity_W(1) - state_.angularVelocity.y;
   errorAngularVelocity.z() = command_trajectory_.angular_velocity_W(2) - state_.angularVelocity.z;
 
-  if (path_is_active || hover_is_active){
-    if (!path_is_active)
+    if (!path_is_active && !hover_is_active)
       {
+          tf::Quaternion q( command_trajectory_.orientation_W_B.x(),
+                        command_trajectory_.orientation_W_B.y(),
+                        command_trajectory_.orientation_W_B.z(),
+                        command_trajectory_.orientation_W_B.w());
+          tf::Matrix3x3 m(q);
 
-        double cy = cos(attitude_t_.yaw);
-        double sy = sin(attitude_t_.yaw);
-        double cp = cos(attitude_t_.pitch);
-        double sp = sin(attitude_t_.pitch);
-        double cr = cos(attitude_t_.roll);
-        double sr = sin(attitude_t_.roll);
-
-
-
-          Eigen::Matrix3d Rotation_des_x, Rotation_des_y, Rotation_des_z;
-
-          Rotation_des_x << 1 , 0 , 0 ,
-                           0,  cr , -sr,
-                           0,  sr, cr;
-
-          Rotation_des_y << cp , 0 , sp ,
-                           0,   1 , 0,
-                           -sp,  0, cp;
-
-          Rotation_des_z << cy, -sy, 0,
-                           sy, cy, 0,
-                           0,  0, 1;
-
-
-          Rotation_des = Rotation_des_z*Rotation_des_y*Rotation_des_x;
+          tf::matrixTFToEigen(m,Rotation_des);
         }
-
+    if(hover_is_active)
+    {
+        attitude_t_.yaw = command_trajectory_.getYaw();
+        tf::Matrix3x3 m;
+        m.setRPY(attitude_t_.roll,attitude_t_.pitch,attitude_t_.yaw);
+        tf::matrixTFToEigen(m,Rotation_des);
+    }
         // Mellinger controll paper with snap trajectory pag.3 col. 1
 
         errorAngle = 0.5*veeOp((Rotation_des.transpose()*Rotation_wb - Rotation_wb.transpose()*Rotation_des));
 
-        // Mellinger control version for aggressive trajecotry
-    }
-    else {
-
-        double roll, pitch, yaw;
-        Quaternion2Euler(&roll, &pitch, &yaw);
-
-
-        errorAngle.x() =   roll - attitude_t_.roll ;
-        errorAngle.y() =   pitch - attitude_t_.pitch  ;
-        errorAngle.z() =   yaw - attitude_t_.yaw;
-    }
 
 }
 
@@ -630,7 +600,7 @@ void MellingerController::CallbackHightLevelControl() {
     if (!hover_is_active && path_is_active)
         PathFollowing3D(control_t_.thrust);
     else if (hover_is_active && !path_is_active)
-       RPThrustControl(attitude_t_.roll, attitude_t_.pitch,control_t_.thrust);
+       RPThrustControl(attitude_t_.roll, attitude_t_.pitch, control_t_.thrust);
     else
        ThrustControl(control_t_.thrust);
 /*

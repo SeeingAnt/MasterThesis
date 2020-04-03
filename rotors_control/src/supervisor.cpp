@@ -19,10 +19,10 @@ int main(int argc, char **argv) {
   std_msgs::Bool c_flag, f_flag;
   ros::Duration hov(12.0);
   //ros::Duration reach(12.77);
-  ros::Duration reach(13.145);
+  ros::Duration reach(13.09);
   //ros::Duration flip(12.98);
-  ros::Duration flip(13.34);
-  ros::Duration rec(13.7);
+  ros::Duration flip(13.30);
+  ros::Duration rec(13.80);
 
   ros::Rate loop_rate(1000);
 
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     }
 
     if (t_elapsed >= reach.toSec() && t_elapsed < flip.toSec()) {
-      c_flag.data = false;
+      c_flag.data = true;
       f_flag.data = true;
       c_pub.publish(c_flag);
       f_pub.publish(f_flag);

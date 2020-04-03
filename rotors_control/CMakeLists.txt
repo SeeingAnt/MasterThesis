@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   mav_msgs
   nav_msgs
   roscpp
+  tf_conversions
   sensor_msgs
   cmake_modules
 )

@@ -18,16 +18,17 @@
 
 using namespace std;
 
+#define M_PI                                     3.14159265358979323846
+
  Eigen::Quaterniond quat_from_euler(double yaw, double pitch, double roll);
 void build_reference(vector<string> line, 
           trajectory_msgs::MultiDOFJointTrajectory &trajectory_msg);
-void FlagCallback(const std_msgs::BoolConstPtr& flag_msg);
 void build_eight(vector<string> line, 
           trajectory_msgs::MultiDOFJointTrajectory &trajectory_msg);
 void build_traj(vector<string> line,
           trajectory_msgs::MultiDOFJointTrajectory &trajectory_msg);
 
-bool flip_flag = false;
+std_msgs::Bool c_flag;
 
 int main(int argc, char **argv) {
 
@@ -39,16 +40,19 @@ int main(int argc, char **argv) {
   ros::Publisher hover_pub =
      n.advertise<std_msgs::Bool>("hover_active", 1);
 
+  ros::Publisher c_pub = n.advertise<std_msgs::Bool>("control_flag", 1000);
+  c_flag.data = true;
+
   ros::Publisher path_pub =
      n.advertise<std_msgs::Bool>("path_active", 1);
 
-  ros::Rate loop_rate1(25);
+  ros::Rate loop_rate1(200);
 
   ifstream input_file;
   string row;
 
-  //input_file.open((ros::package::getPath("rotors_gazebo")+"/src/traj.txt").c_str());
-  input_file.open((ros::package::getPath("rotors_gazebo")+"/src/prova.txt").c_str());
+  input_file.open((ros::package::getPath("rotors_gazebo")+"/src/traj.txt").c_str());
+  //input_file.open((ros::package::getPath("rotors_gazebo")+"/src/prova.txt").c_str());
   //input_file.open((ros::package::getPath("rotors_gazebo")+"/src/eight_traj.txt").c_str());
 
   if (!input_file) {
@@ -72,15 +76,15 @@ int main(int argc, char **argv) {
 
   istringstream iss(row);
   vector<string> split((istream_iterator<string>(iss)),istream_iterator<string>());
-  //build_reference(split, trajectory_msg);
+  build_reference(split, trajectory_msg);
   //build_eight(split, trajectory_msg);
-  build_traj(split, trajectory_msg);
+  //build_traj(split, trajectory_msg);
 
   pub.publish(trajectory_msg);
 
   ros::Duration(10.0).sleep();
 
-  path.data = true;
+  path.data = false;
   path_pub.publish(path);
 
   hover.data = false;
@@ -95,22 +99,23 @@ int main(int argc, char **argv) {
 
     istringstream iss(row);
     vector<string> split((istream_iterator<string>(iss)),istream_iterator<string>());
-    //build_reference(split, trajectory_msg);
+    build_reference(split, trajectory_msg);
     //build_eight(split, trajectory_msg);
-    build_traj(split, trajectory_msg);
+    //build_traj(split, trajectory_msg);
 
     pub.publish(trajectory_msg);
+   // c_pub.publish(c_flag);
 
     ros::spinOnce();
     loop_rate1.sleep();
 
   }
 
-  path.data = false;
-  path_pub.publish(path);
-
   hover.data = true;
   hover_pub.publish(hover);
+
+  path.data = false;
+  path_pub.publish(path);
 
   input_file.close();
 
@@ -141,12 +146,6 @@ int main(int argc, char **argv) {
 
 }
 
-void FlagCallback(const std_msgs::BoolConstPtr& flag_msg) {
-  
-  flip_flag = flag_msg->data;
-
-}
-
 void build_reference(vector<string> line, 
           trajectory_msgs::MultiDOFJointTrajectory &trajectory_msg) {
   
@@ -155,13 +154,18 @@ void build_reference(vector<string> line,
   Eigen::Vector3d desired_position(0.0, atof(line[0].c_str()), atof(line[1].c_str()));
   Eigen::Vector3d desired_velocity(0.0,atof(line[3].c_str()),atof(line[4].c_str()));
   Eigen::Vector3d desired_acceleration(0.0,atof(line[5].c_str()),atof(line[6].c_str()));
+  Eigen::Vector3d angular_velocity(atof(line[7].c_str()),0.0,0.0);
 
-  q = quat_from_euler(0,atof(line[2].c_str()),0);
+
+  double angle = atof(line[2].c_str());
+
+  q = quat_from_euler(0,0,angle);
 
   point.position_W=desired_position;
   point.velocity_W=desired_velocity;
   point.acceleration_W = desired_acceleration;
   point.orientation_W_B=q;
+  point.angular_velocity_W = angular_velocity;
 
   mav_msgs::msgMultiDofJointTrajectoryFromEigen(point, &trajectory_msg);
 
@@ -183,8 +187,8 @@ void build_eight(vector<string> line,
   q = quat_from_euler(atof(line[3].c_str()),atof(line[4].c_str()),atof(line[5].c_str()));
 
   point.position_W=desired_position;
-  //point.velocity_W=desired_velocity;
-  //point.acceleration_W = desired_acceleration;
+  point.velocity_W=desired_velocity;
+  point.acceleration_W = desired_acceleration;
   point.orientation_W_B=q;
 
   mav_msgs::msgMultiDofJointTrajectoryFromEigen(point, &trajectory_msg);
