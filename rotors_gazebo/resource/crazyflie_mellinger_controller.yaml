@@ -3,14 +3,14 @@
 # Hover Stiff
 hover_stiff_kp: {x: 30 ,y: 30, z: 0.75}
 hover_stiff_ki: {x: 0.01,y: 0.01, z: 0.01}
-hover_stiff_kd: {x: 2,y: 2 ,z: 2}
-hover_stiff_angle_kp: {phi: 0.009, theta: 0.009, psi: 0.002 }
-hover_stiff_angle_kd: {phi: 0.002 ,theta: 0.002 ,psi: 0.002 }
+hover_stiff_kd: {x: 2,y: 2 ,z: 4}
+hover_stiff_angle_kp: {phi: 0.009, theta: 0.009, psi: 500.0 }
+hover_stiff_angle_kd: {phi: 0.002 ,theta: 0.002 ,psi: 10.0 }
 
 # Hover Soft
-hover_soft_kp: {x: 20.0 ,y: 20.0 ,z: 200.0 }
-hover_soft_ki: {x: 0.01 ,y: 0.01 ,z: 0.0 }
-hover_soft_kd: {x: 0.5 ,y: 0.5 ,z: 50.0 }
+hover_soft_kp: {x: 20.0 ,y: 20.0 ,z: 180.0 }
+hover_soft_ki: {x: 0.01 ,y: 0.01 ,z: 0.01 }
+hover_soft_kd: {x: 0.5 ,y: 0.5 ,z: 30.0 }
 hover_soft_angle_kp: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
 hover_soft_angle_kd: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
 
@@ -22,6 +22,6 @@ path_kd: {x: 0.03, y: 0.03, z: 0.5}
 
 
 # Attitude
-attitude_kp: {phi: 0.004, theta: 0.004, psi: 0.003 }
-attitude_kd: {phi: 0.002, theta: 0.002, psi: 0.002 }
+attitude_kp: {phi: 0.004, theta: 0.004, psi: 0.004}
+attitude_kd: {phi: 0.003, theta: 0.003, psi: 0.003}
 

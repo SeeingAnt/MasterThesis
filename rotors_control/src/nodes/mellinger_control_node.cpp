@@ -28,8 +28,8 @@
 #include "rotors_control/stabilizer_types.h"
 #include "rotors_control/crazyflie_complementary_filter.h"
 
-#define ATTITUDE_UPDATE_DT 0.0004  /* ATTITUDE UPDATE RATE [s] - 500Hz */
-#define RATE_UPDATE_DT 0.0002      /* RATE UPDATE RATE [s] - 250Hz */
+#define ATTITUDE_UPDATE_DT 0.004  /* ATTITUDE UPDATE RATE [s] - 500Hz */
+#define RATE_UPDATE_DT 0.002      /* RATE UPDATE RATE [s] - 250Hz */
 #define SAMPLING_TIME  0.002       /* SAMPLING CONTROLLER TIME [s] - 100Hz */
 
 namespace rotors_control {
@@ -59,7 +59,6 @@ MellingerControlNode::MellingerControlNode() {
     if(pnh_node.getParam("enable_state_estimator", enable_state_estimator_)){
       ROS_INFO("Got param 'enable_state_estimator': %d", enable_state_estimator_);
     }
-
 
     if (enable_state_estimator_){
         imu_sub_ = nh.subscribe(mav_msgs::default_topics::IMU, 1, &MellingerControlNode::IMUCallback, this);

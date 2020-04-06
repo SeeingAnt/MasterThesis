@@ -39,7 +39,7 @@
 #define OMEGA_OFFSET                             6874  /* OMEGA OFFSET [PWM]*/
 #define ANGULAR_MOTOR_COEFFICIENT                0.2685 /* ANGULAR_MOTOR_COEFFICIENT */
 #define MOTORS_INTERCEPT                         426.24 /* MOTORS_INTERCEPT [rad/s]*/
-#define MAX_PROPELLERS_ANGULAR_VELOCITY          2618 /* MAX PROPELLERS ANGULAR VELOCITY [rad/s]*/
+#define MAX_PROPELLERS_ANGULAR_VELOCITY          26180 /* MAX PROPELLERS ANGULAR VELOCITY [rad/s]*/
 #define MAX_R_DESIDERED                          3.4907 /* MAX R DESIDERED VALUE [rad/s]*/   
 #define MAX_THETA_COMMAND                        0.5236 /* MAX THETA COMMMAND [rad]*/
 #define MAX_PHI_COMMAND                          0.5236 /* MAX PHI COMMAND [rad]*/
@@ -229,8 +229,8 @@ void MellingerController::resetPathFollow()
 void MellingerController::CalculateRotorVelocities(Eigen::Vector4d* rotor_velocities) {
 
     // This is to disable the controller if we do not receive a trajectory
-    if(!controller_active_ || (state_.attitudeQuaternion.x > 0.707 && state_.attitudeQuaternion.x < 1
-                               && state_.attitudeQuaternion.x > -1 && state_.attitudeQuaternion.x < -0.707 )){
+    if(!controller_active_ || (state_.attitudeQuaternion.x > 0.707-0.02 && state_.attitudeQuaternion.x < 1)
+       || (state_.attitudeQuaternion.x > -1 && state_.attitudeQuaternion.x < -0.707+0.02 )){
        *rotor_velocities = Eigen::Vector4d::Zero(rotor_velocities->rows());
        error_x = 0;
        error_y = 0;
@@ -509,9 +509,9 @@ void MellingerController::AttitudeError(Eigen::Vector3d &errorAngle ,Eigen::Vect
       //  double roll, pitch, yaw;
        // Quaternion2Euler(&roll, &pitch, &yaw);
 
-  errorAngularVelocity.x() = command_trajectory_.angular_velocity_W(0) - state_.angularVelocity.x;
-  errorAngularVelocity.y() = command_trajectory_.angular_velocity_W(1) - state_.angularVelocity.y;
-  errorAngularVelocity.z() = command_trajectory_.angular_velocity_W(2) - state_.angularVelocity.z;
+    errorAngularVelocity.x() = command_trajectory_.angular_velocity_W(0) - state_.angularVelocity.x;
+    errorAngularVelocity.y() = command_trajectory_.angular_velocity_W(1) - state_.angularVelocity.y;
+    errorAngularVelocity.z() = command_trajectory_.angular_velocity_W(2) - state_.angularVelocity.z;
 
     if (!path_is_active && !hover_is_active)
       {
@@ -557,6 +557,24 @@ void MellingerController::RPThrustControl(double &phi_des, double &theta_des,dou
     phi_des = (1/(c_a.z + GRAVITY))*(c_a.x * sin(command_trajectory_.getYaw()) - c_a.y * cos(command_trajectory_.getYaw()));
     theta_des = (1/(c_a.z + GRAVITY))*(c_a.x * cos(command_trajectory_.getYaw()) + c_a.y * sin(command_trajectory_.getYaw()));
     delta_F = mass * (c_a.z + GRAVITY);
+
+    if (phi_des < 0){
+      if(phi_des < -M_PI/2 && phi_des > -2*M_PI)
+        phi_des = -M_PI/2+0.1;
+    }
+    else{
+      if(phi_des > M_PI/2 && phi_des < 2*M_PI)
+        phi_des = +M_PI/2-0.1;
+    }
+
+    if (theta_des < 0){
+      if(theta_des < -M_PI/2 && theta_des > -2*M_PI)
+        theta_des = -M_PI/2+0.1;
+    }
+    else{
+      if(theta_des > M_PI/2 && theta_des < 2*M_PI)
+        theta_des = +M_PI/2-0.1;
+    }
 
 }
 
