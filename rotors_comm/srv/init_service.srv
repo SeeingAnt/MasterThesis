@@ -1,0 +1,4 @@
+# Whether to init parameter or not
+bool initialize
+---
+bool success
