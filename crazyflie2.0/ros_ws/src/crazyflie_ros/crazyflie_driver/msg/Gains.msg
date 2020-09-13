@@ -1,0 +1,14 @@
+Header header
+float32 gain1
+float32 gain2
+float32 gain3
+float32 gain4
+float32 gain5
+float32 gain6
+float32 gain7
+float32 gain8
+float32 gain9
+float32 gain10
+float32 gain11
+float32 gain12
+uint8 port
