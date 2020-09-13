@@ -1,0 +1,59 @@
+clear all; clc; close all;
+addpath('../tool')
+
+%% Initial parameters
+
+par=InitParameter();   
+
+x0 = [0;0;0.81;0;0;0;0;0;0;0;0;0;par.m*par.g;0;0;0;0;0;0;0;0];
+%xf = [NaN 0; NaN 0; 2 1; par.flips*2*pi par.flips*2*pi; 0 0; 0 0];%
+% flip
+%xf = [NaN; NaN; NaN; par.flips*2*pi; 0; 0];
+% rectangle
+xf = [0 1 1 0 0; 1 1 -1 -1 0; 1 1 1 1 1; 0 0 0 0 0 ; 0 0 0 0 0; 0 0 0 0 0];
+
+u0 = par.initControl;
+numberOftrajectory = size(xf,2);
+
+save x0 x0
+save u0 u0
+%%  definition of trajectory
+
+trajectory = {};
+for i=1:numberOftrajectory-1
+   
+    [trajectory(i).xplot,trajectory(i).uplot,trajectory(i).tplot]  = trajectory_generation(xf(:,i),true);
+    
+end    
+
+[trajectory(numberOftrajectory).xplot,trajectory(numberOftrajectory).uplot, trajectory(numberOftrajectory).tplot] ...
+                            = trajectory_generation(xf(:,numberOftrajectory),true);
+    
+xplot = [];
+uplot = [];
+tplot = 0;
+
+for i=1:numberOftrajectory
+    xplot = [xplot;trajectory(i).xplot];
+    uplot = [uplot;trajectory(i).uplot];
+    tplot = [tplot;tplot(end)+trajectory(i).tplot];
+end    
+tplot = tplot(2:end);
+save optimprofiles tplot uplot xplot
+
+%% Visualize results
+
+generate_acceleration;
+visualize_result;
+
+%% compute gains 
+
+K = computeLQRGains([theta; phi; psy],omega);
+
+%% Write trajectory and Gains to file
+
+A = [x' y' z' theta' phi' psy' xd' yd' zd' omega' xdd' ydd' zdd' omegad'];
+address=pwd;
+ind=find(address=='/');
+writematrix(A,strcat(address(1:ind(end-1)),'ROS/src/rotors_gazebo/src/traj.txt'),'Delimiter','tab');
+writematrix(K,strcat(address(1:ind(end-1)),'ROS/src/rotors_gazebo/src/Gains.txt'),'Delimiter','tab');
