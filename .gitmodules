@@ -1,26 +1,26 @@
-[submodule "crazyflie2.0/crazyflie-lib-python"]
-	path = crazyflie-lib-python
-	url = https://github.com/bitcraze/crazyflie-lib-python.git
-	branch = master
+[submodule "crazyflie2.0/crazyflie2-nrf-firmware"]
+	path = crazyflie2.0/crazyflie2-nrf-firmware
+	url = https://github.com/bitcraze/crazyflie2-nrf-firmware.git
+[submodule "crazyflie2.0/crazyflie-firmware"]
+	path = crazyflie2.0/crazyflie-firmware
+	url = https://github.com/Tonirayn/crazyflie-firmware.git
+[submodule "crazyflie2.0/ros_ws/src/externalDependencies/libobjecttracker"]
+	path = crazyflie2.0/ros_ws/src/externalDependencies/libobjecttracker
+	url = https://github.com/USC-ACTLab/libobjecttracker
+[submodule "crazyflie2.0/ros_ws/src/crazyflie_ros"]
+	path = crazyflie2.0/ros_ws/src/crazyflie_ros
+	url = https://github.com/Tonirayn/crazyflie_ros.git
+[submodule "crazyflie2.0/ros_ws/src/externalDependencies/libmotioncapture"]
+	path = crazyflie2.0/ros_ws/src/externalDependencies/libmotioncapture
+	url = https://github.com/USC-ACTLab/libmotioncapture.git
+[submodule "crazyflie2.0/crazyradio-firmware"]
+	path = crazyflie2.0/crazyradio-firmware
+	url = https://github.com/bitcraze/crazyradio-firmware.git
 [submodule "crazyflie2.0/crazyflie-clients-python"]
-	path = crazyflie-clients-python
+	path = crazyflie2.0/crazyflie-clients-python
 	url = https://github.com/bitcraze/crazyflie-clients-python.git
 	branch = develop
-[submodule "crazyflie2.0/crazyradio-firmware"]
-	path = crazyradio-firmware
-	url = https://github.com/bitcraze/crazyradio-firmware.git
-[submodule "crazyflie2.0/crazyflie2-nrf-firmware"]
-	path = crazyflie2-nrf-firmware
-	url = https://github.com/bitcraze/crazyflie2-nrf-firmware.git
-[submodule "crazyflie2.0/ros_ws/src/externalDependencies/libobjecttracker"]
-	path = ros_ws/src/externalDependencies/libobjecttracker
-	url = https://github.com/USC-ACTLab/libobjecttracker
-[submodule "crazyflie2.0/ros_ws/src/externalDependencies/libmotioncapture"]
-	path = ros_ws/src/externalDependencies/libmotioncapture
-	url = https://github.com/USC-ACTLab/libmotioncapture.git
-[submodule "crazyflie2.0/ros_ws/src/crazyflie_ros"]
-	path = ros_ws/src/crazyflie_ros
-	url = https://github.com/Tonirayn/crazyflie_ros.git
-[submodule "crazyflie2.0/crazyflie-firmware"]
-	path = crazyflie-firmware
-	url = https://github.com/Tonirayn/crazyflie-firmware.git
+[submodule "crazyflie2.0/crazyflie-lib-python"]
+	path = crazyflie2.0/crazyflie-lib-python
+	url = https://github.com/bitcraze/crazyflie-lib-python.git
+	branch = master
