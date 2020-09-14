@@ -1,0 +1,28 @@
+# Mellinger controller parameters
+
+# Hover Stiff
+hover_stiff_kp: {x: 5.81 ,y: 5.81, z: 5.79}
+hover_stiff_ki: {x: 0.002,y: 0.002, z: 0.002}
+hover_stiff_kd: {x: 4.20,y: 4.20 ,z: 5.4}
+hover_stiff_angle_kp: {phi: 0.02, theta: 0.02, psi: 0.005 }
+hover_stiff_angle_kd: {phi: 0.003,theta: 0.003,psi: 0.001 }
+
+# Hover Soft
+hover_soft_kp: {x: 20, y: 20 , z: 18.01}
+hover_soft_ki: {x: 0.02 ,y: 0.02 ,z: 0.1}
+hover_soft_kd: {x:  40, y: 40, z: 18.1}
+hover_soft_angle_kp: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
+hover_soft_angle_kd: {phi: 1.0 ,theta: 1.0 ,psi: 1.0 }
+
+#3D Path Following
+
+path_angle_kp: {phi: 0.02, theta: 0.02, psi: 0.006 }
+path_angle_kd: {phi: 0.01, theta: 0.01, psi: 0.006 }
+path_kp: {x: 0.3, y: 0.3, z: 0.6}
+path_kd: {x: 0.1, y: 0.1, z: 0.5}
+
+
+# Attitude
+attitude_kp: {phi: 0, theta: 0, psi: 0.00002}
+attitude_kd: {phi: 0.0005 ,theta: 0.0005 ,psi: 0.0005}
+
