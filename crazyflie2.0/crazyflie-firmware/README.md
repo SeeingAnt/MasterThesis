@@ -195,3 +195,8 @@ image (bitcraze/builder) that contains all tools needed. All scripts in the
 tools/build directory are intended to be run in the image. The 
 [toolbelt](https://wiki.bitcraze.io/projects:dockerbuilderimage:index) makes it
 easy to run the tool scripts.
+
+## Added Files
+
+in order to impement the aggressive controller, composed by the Mellinger's and the Variational Based Controller, the crtp_gains.c , controller_aggressive.c, gainsloader.c have been added while controller.c, crtp.c, param.c, stabilizer.c have been modified  
+
